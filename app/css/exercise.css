@@ -1,1 +1,103 @@
 /* 運動分頁樣式（運動對話維護） */
+
+/* ---- 列表頁 ---- */
+.ex-seg{display:flex;background:var(--card);border-radius:12px;padding:4px;gap:4px;margin-bottom:4px}
+.ex-seg button{flex:1;padding:9px 0;background:none;color:var(--muted);border-radius:9px}
+.ex-seg button.on{background:var(--accent);color:#fff;font-weight:600}
+.ex-h{font-size:15px;color:var(--muted);font-weight:600;margin:20px 4px 4px}
+.ex-card b{font-weight:600}
+.ex-ci{min-width:0}
+.ex-acts{display:flex;gap:6px;flex-shrink:0}
+.ex-acts button{padding:8px 12px}
+.ex-acts button:not(.pri){background:var(--bg)}
+.ex-add{width:100%;background:none;border:1.5px dashed var(--line);color:var(--accent);margin:6px 0}
+.row .ex-add{flex:1;width:auto;margin:0}
+.ex-empty{padding:14px 0}
+.ex-danger{color:#C0392B}
+.ex-chips{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0 6px}
+.ex-chips button{padding:6px 14px;font-size:14px}
+.ex-chips button.on{background:var(--accent);color:#fff}
+details.ex-mv{display:block}
+details.ex-mv summary{list-style:none;cursor:pointer}
+details.ex-mv summary::-webkit-details-marker{display:none}
+details.ex-mv[open] summary b{color:var(--accent)}
+details.ex-mv p{margin:10px 0 0;line-height:1.7;font-size:15px}
+details.ex-mv .row button{background:var(--bg);padding:6px 12px;font-size:14px}
+
+/* ---- 編輯畫面 ---- */
+#exroot h1 button{font-size:15px;font-weight:400}
+.ex-form{display:block}
+.ex-full{display:flex;flex-direction:column;gap:6px;margin:8px 0}
+.ex-full input,.ex-full textarea{width:100%;font:inherit;padding:8px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--text);resize:vertical}
+.ex-item{background:var(--card);border-radius:14px;padding:10px 14px;margin:10px 0}
+.ex-item.rest{background:none;border:1.5px dashed var(--line)}
+.ex-item.drag{box-shadow:0 8px 24px rgba(0,0,0,.18);position:relative;z-index:2}
+.ex-ih{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.ex-ih b{font-weight:600}
+.ex-ih .ex-sp{flex:1}
+.ex-ih button{padding:6px 10px;font-size:13px;background:var(--bg)}
+.ex-drag{touch-action:none;cursor:grab;font-size:22px;line-height:1;color:var(--muted);padding:4px 6px;user-select:none;-webkit-user-select:none}
+input.ex-name{width:100%}
+.ex-item input[type=number],.ex-form input[type=number]{width:68px}
+.ex-hint{color:var(--muted);font-size:13px}
+.ex-est{color:var(--muted);text-align:center;font-size:14px}
+.ex-save .pri{flex:1}
+.ex-skip small{margin-top:2px}
+
+/* ---- 練習中（放在共用 #play 裡）---- */
+#exstage{display:none}
+#play.ex{transition:background .5s}
+#play.ex>:not(#exstage){display:none!important}
+#play.ex #exstage{display:flex;flex-direction:column;align-items:center;width:100%;max-width:480px;height:100%;gap:10px;
+ padding:calc(14px + env(safe-area-inset-top)) 20px calc(22px + env(safe-area-inset-bottom))}
+#exstage button{color:inherit}
+.ex-top{display:flex;justify-content:space-between;align-items:center;width:100%;font-size:15px}
+.ex-top span{opacity:.85}
+.ex-top button,.ex-ctl button{background:rgba(255,255,255,.2)}
+#exstage.rest .ex-top button,#exstage.rest .ex-ctl button{background:rgba(113,43,19,.08)}
+.ex-top button{padding:8px 16px}
+#exPhase{font-size:15px;letter-spacing:.15em;opacity:.8;margin-top:auto}
+#exName{font-size:clamp(28px,8vw,40px);font-weight:600;text-align:center;line-height:1.25}
+#exRing{position:relative;width:min(68vw,40vh,280px);aspect-ratio:1}
+#exRing svg{width:100%;height:100%;transform:rotate(-90deg)}
+#exRing circle{fill:none;stroke-width:7}
+#exstage .trk{stroke:rgba(255,255,255,.28)}
+#exstage .bar{stroke:#fff;stroke-linecap:round;transition:stroke-dashoffset 1s linear,stroke .6s}
+#exstage.rest .trk{stroke:rgba(113,43,19,.12)}
+#exstage.rest .bar{stroke:#E8825E}
+.ex-mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+#exNum{font-size:clamp(64px,20vw,104px);font-weight:600;line-height:1;background:none;padding:0 10px;font-variant-numeric:tabular-nums}
+#exNum:disabled{cursor:default;opacity:1}
+#exUnit{font-size:16px;opacity:.85;margin-top:6px;text-align:center}
+#exAdj{display:none;align-items:center;gap:14px}
+#exAdj.show{display:flex}
+#exAdj button{width:52px;height:52px;border-radius:50%;font-size:26px;padding:0;background:rgba(255,255,255,.22)}
+#exstage.rest #exAdj button{background:rgba(113,43,19,.1)}
+#exAdj span{font-size:13px;opacity:.85}
+#exSet{font-size:16px;opacity:.9;min-height:1.4em}
+.ex-main{min-height:62px;display:flex;align-items:center}
+#exstage #exDone{font-size:22px;font-weight:600;padding:16px 60px;border-radius:40px;background:#fff;color:#B9502C}
+#exstage #exMore{padding:12px 26px;border-radius:30px;background:rgba(113,43,19,.08)}
+#exNext{font-size:15px;opacity:.85;min-height:1.4em;margin-bottom:auto;text-align:center}
+.ex-ctl{display:flex;align-items:center;justify-content:center;gap:22px;width:100%}
+.ex-ctl button{padding:12px 14px;min-width:78px}
+.ex-ctl button:disabled{opacity:.35;cursor:default}
+#exstage #exPause{width:88px;height:88px;min-width:0;padding:0;border-radius:50%;font-size:19px;font-weight:600;background:#fff;color:#B9502C}
+#exstage.rest #exPause{background:#E8825E;color:#fff}
+#exConfirm{display:none;position:absolute;inset:0;background:rgba(0,0,0,.45);align-items:center;justify-content:center;padding:24px;z-index:2}
+#exConfirm.show{display:flex}
+.ex-dlg{background:var(--card);border-radius:18px;padding:22px 20px 16px;width:100%;max-width:340px;text-align:center}
+#exstage .ex-dlg,#exstage .ex-dlg button{color:var(--text)}
+#exstage .ex-dlg button.pri{color:#fff}
+.ex-dlg small{display:block;color:var(--muted);margin:6px 0 12px}
+.ex-dlg .row{justify-content:center}
+.ex-dlg button:not(.pri){background:var(--bg)}
+
+/* 深色：炭火暖棕底，珊瑚橘數字與進度環，休息時變淡 */
+#exstage.dark .ex-top button,#exstage.dark .ex-ctl button,#exstage.dark #exAdj button,#exstage.dark #exMore{background:rgba(240,153,123,.12)}
+#exstage.dark .trk{stroke:rgba(240,153,123,.16)}
+#exstage.dark .bar{stroke:#F0997B}
+#exstage.dark.rest .bar{stroke:rgba(240,153,123,.4)}
+#exstage.dark.work #exNum,#exstage.dark.work #exName{color:#F0997B}
+#exstage.dark #exDone,#exstage.dark #exPause{background:#F0997B;color:#1C120E}
+#exstage.dark.rest #exPause{background:rgba(240,153,123,.3);color:#F5C4B3}
