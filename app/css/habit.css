@@ -1,0 +1,5 @@
+/* 習慣分頁樣式（習慣對話維護） */
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:13px}
+.cal div{padding:6px 0;border-radius:8px;background:var(--card);min-height:40px}
+.dots span{display:inline-block;width:6px;height:6px;border-radius:50%;margin:0 1px}
+.stat{flex:1;text-align:center}.stat b{font-size:26px;display:block}
