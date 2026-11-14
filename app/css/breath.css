@@ -10,3 +10,36 @@
 @keyframes glow{50%{opacity:.5}}
 #btext{position:relative;z-index:1;text-align:center;pointer-events:none}
 #bstep{font-size:18px;letter-spacing:.2em;opacity:.9;min-height:1.4em}#bnum{font-size:40px;font-weight:600;font-variant-numeric:tabular-nums;min-height:1.2em}
+/* 進行中自動變暗（點一下恢復） */
+#play.breath #pinfo,#play.breath #ptime,#play.breath .row,#play.breath #bstage{transition:opacity 1.5s}
+#play.breath.bdim #bstage{opacity:.35}
+#play.breath.bdim #pinfo,#play.breath.bdim #ptime,#play.breath.bdim .row{opacity:.12}
+/* 列表頁 */
+.bsec{font-size:14px;color:var(--muted);margin:18px 4px 4px}
+.bsec small{margin-left:6px}
+.bitem{cursor:pointer}
+.bitem.bhid{opacity:.5}
+.bgo{color:var(--muted);font-size:22px}
+.bquick{border:1.5px solid var(--accent)}
+.bquick small:first-child{color:var(--accent);margin:0 0 2px}
+.bmv{display:flex;gap:4px;margin:0}
+.bmv button{padding:8px 10px;background:var(--bg)}
+.bmv button:disabled{opacity:.3}
+/* 準備畫面 */
+.bseg{display:flex;gap:4px;background:var(--bg);border-radius:12px;padding:4px;margin:8px 0}
+.bseg button{flex:1;background:none;padding:8px 6px}
+.bseg button.on{background:var(--accent);color:#fff}
+.bchips button{background:var(--bg)}
+.bchips button.on{background:var(--accent);color:#fff}
+.bhint{color:var(--muted);font-size:13px}
+/* 編輯畫面 */
+.bstep{flex-wrap:wrap;justify-content:flex-start}
+.bno{color:var(--muted);width:18px}
+.bstep select{width:auto}
+.btime{display:flex;align-items:center;gap:4px}
+.btime input{width:64px}
+.bu{padding:8px 10px;background:var(--bg);font-size:14px}
+.bstep .bmv{margin-left:auto}
+.bdanger{color:#C0392B;background:none}
+body[data-tab="breath"] h1 button{font-size:15px;font-weight:400;padding:8px 14px}
+body[data-tab="breath"] h1 .pri{font-size:20px;padding:4px 14px}
