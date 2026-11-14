@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#F7F5F0">
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chiron+GoRound+TC:wght@400;600&display=swap">
+<title>呼吸運動</title>
+<style>
+:root{--bg:#F7F5F0;--card:#FFFFFF;--text:#2C2C2A;--muted:#888780;--nav:#FFFFFF;--line:#E4E2DA;
+--breath:#534AB7;--breath-bg:#2E2966;--ex:#D85A30;--ex-bg:#FBEDE6;--st:#1D9E75;--st-bg:#E6F4EE;--hb:#444441}
+:root[data-theme="dark"]{--card:#2A2A2C;--text:#E8E6DF;--muted:#9a988f;--nav:#1A1A1C;--line:#333;--breath:#AFA9EC;--ex:#F0997B;--st:#5DCAA5;--hb:#D3D1C7;--breath-bg:#110F24;--ex-bg:#1C120E;--st-bg:#0E1A15}
+:root[data-theme="dark"] body[data-tab="breath"]{--bg:#1E1B3A;--card:#2A2650}
+:root[data-theme="dark"] body[data-tab="ex"]{--bg:#2A1C17;--card:#3A261E}
+:root[data-theme="dark"] body[data-tab="st"]{--bg:#15261F;--card:#1D352B}
+:root[data-theme="dark"] body[data-tab="hb"]{--bg:#222220;--card:#2E2E2B}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Chiron GoRound TC",system-ui,-apple-system,"Noto Sans TC",sans-serif;background:var(--bg);color:var(--text);transition:background .4s}
+main{padding:16px 16px 90px;max-width:560px;margin:0 auto}
+h1{font-size:24px;font-weight:600;margin:8px 0 16px;display:flex;justify-content:space-between;align-items:center}
+.card{background:var(--card);border-radius:14px;padding:14px 16px;margin:10px 0;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.card small{color:var(--muted);display:block;margin-top:2px}
+button{font:inherit;border:0;border-radius:12px;padding:10px 16px;background:var(--card);color:var(--text);cursor:pointer}
+.pri{color:#fff;background:var(--accent)}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--nav);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;background:none;padding:14px 0;color:var(--muted);border-radius:0}
+nav button.on{color:var(--accent);font-weight:600}
+body[data-tab="breath"]{--accent:var(--breath)}body[data-tab="ex"]{--accent:var(--ex)}body[data-tab="st"]{--accent:var(--st)}body[data-tab="hb"]{--accent:var(--hb)}
+input,select{font:inherit;padding:8px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--text);width:80px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0}
+#play{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:24px;z-index:9;transition:background 1.2s,opacity .6s}
+#play.show{display:flex}
+#circle{width:120px;height:120px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;transition-property:width,height,background;transition-timing-function:ease-in-out}
+#cnum{font-size:40px;font-weight:600}#cstep{font-size:18px}
+/* breathing: layered circle; text stays still, only the layers scale */
+#bstage{position:relative;width:min(78vw,300px);aspect-ratio:1;display:none;align-items:center;justify-content:center}
+#play.breath #bstage{display:flex}#play.breath #circle{display:none}
+#bstage .ly{position:absolute;inset:0;border-radius:50%;transform:scale(var(--s,.42));transition:transform var(--d,1s) cubic-bezier(.37,0,.63,1)}
+#bstage .halo{background:radial-gradient(circle,rgba(175,169,236,.38) 0%,rgba(127,119,221,.14) 50%,transparent 70%);transform:scale(calc(var(--s,.42)*1.4));transition-delay:.3s}
+#bstage .ring{border:1.5px solid rgba(206,203,246,.4);transform:scale(calc(var(--s,.42)*1.13));transition-delay:.15s}
+#bstage .core{background:radial-gradient(circle at 38% 32%,#8F87E6 0%,#5C53C4 48%,#3C3489 100%);box-shadow:0 0 36px rgba(127,119,221,.4)}
+#bstage.hold .halo{animation:glow 3.2s ease-in-out infinite}
+@keyframes glow{50%{opacity:.5}}
+#btext{position:relative;z-index:1;text-align:center;pointer-events:none}
+#bstep{font-size:18px;letter-spacing:.2em;opacity:.9;min-height:1.4em}#bnum{font-size:40px;font-weight:600;font-variant-numeric:tabular-nums;min-height:1.2em}
+#pinfo{font-size:16px;opacity:.8}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:13px}
+.cal div{padding:6px 0;border-radius:8px;background:var(--card);min-height:40px}
+.dots span{display:inline-block;width:6px;height:6px;border-radius:50%;margin:0 1px}
+.empty{color:var(--muted);text-align:center;padding:40px 0;line-height:1.8}
+.stat{flex:1;text-align:center}.stat b{font-size:26px;display:block}
+</style>
+</head>
+<body data-tab="breath">
+<main id="view"></main>
+<nav>
+<button data-t="breath">呼吸</button><button data-t="ex">運動</button><button data-t="st">拉伸</button><button data-t="hb">習慣</button>
+</nav>
+<div id="play"><div id="pinfo"></div><div id="circle"><div id="cstep"></div><div id="cnum"></div></div>
+<div id="bstage"><div class="ly halo"></div><div class="ly ring"></div><div class="ly core"></div><div id="btext"><div id="bstep"></div><div id="bnum"></div></div></div><div id="ptime"></div>
+<div class="row"><button id="pbtn">暫停</button><button id="sbtn" style="display:none">結束</button></div></div>
+<script>
+const $=s=>document.querySelector(s);
+const store={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const S=store.get('settings',{theme:'auto',voice:true,sound:true,vibrate:true});
+function applyTheme(){const dark=S.theme==='dark'||(S.theme==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.dataset.theme=dark?'dark':'light'}
+applyTheme();
+const BREATHS=[
+{id:'box',name:'箱式呼吸',steps:[['in',4],['hold',4],['out',4],['hold',4]]},
+{id:'478',name:'4-7-8 呼吸',steps:[['in',4],['hold',7],['out',8]]},
+{id:'res',name:'共振呼吸',steps:[['in',6],['out',6]]},
+{id:'calm',name:'舒緩呼吸',steps:[['in',4],['out',6]]}];
+const STEP={in:'吸氣',hold:'停住',out:'吐氣'};
+const LOG=()=>store.get('log',[]);
+function addLog(type,name,sec){const l=LOG();l.push({t:Date.now(),type,name,sec});store.set('log',l)}
+// platform layer (swap for Capacitor plugins later)
+const P={
+ // recorded voice clips (audio/f = 女聲 HsiaoChen, audio/m = 男聲 YunJhe); other words fall back to device TTS
+ VK:{'準備':'prep','開始':'start','吸氣':'in','停住':'hold','吐氣':'out','結束':'end'},buf:{},
+ ctx(){return P.ac=P.ac||new(window.AudioContext||window.webkitAudioContext)()},
+ load(){const v=S.voiceType||'f';Object.values(P.VK).forEach(k=>{const id=v+'/'+k;if(P.buf[id])return;fetch('audio/'+id+'.mp3').then(r=>r.arrayBuffer()).then(a=>P.ctx().decodeAudioData(a)).then(b=>P.buf[id]=b).catch(()=>{})})},
+ say(t){if(!S.voice)return;const b=P.buf[(S.voiceType||'f')+'/'+P.VK[t]];
+  if(b){try{const ac=P.ctx(),s=ac.createBufferSource();s.buffer=b;s.connect(ac.destination);s.start()}catch(e){}return}
+  if(!window.speechSynthesis)return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='zh-TW';u.rate=.85;speechSynthesis.speak(u)},
+ beep(f=520,d=.25){if(!S.sound)return;try{P.ctx();const o=P.ac.createOscillator(),g=P.ac.createGain();o.frequency.value=f;o.type='sine';g.gain.setValueAtTime(.0001,P.ac.currentTime);g.gain.exponentialRampToValueAtTime(.2,P.ac.currentTime+.03);g.gain.exponentialRampToValueAtTime(.0001,P.ac.currentTime+d);o.connect(g).connect(P.ac.destination);o.start();o.stop(P.ac.currentTime+d)}catch(e){}},
+ buzz(ms=80){if(S.vibrate&&navigator.vibrate)navigator.vibrate(ms)},
+ async wake(on){try{if(on){P.lock=await navigator.wakeLock?.request('screen')}else{P.lock?.release();P.lock=null}}catch(e){}}
+};
+P.load();
+let tab='breath';
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>go(b.dataset.t));
+function go(t){tab=t;document.body.dataset.tab=t;document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));render()}
+function render(){({breath:rBreath,ex:rEx,st:rSt,hb:rHb})[tab]()}
+// ---------- breathing ----------
+function rBreath(){
+ const mins=store.get('bmins',{});
+ $('#view').innerHTML='<h1>呼吸</h1>'+BREATHS.map(b=>`<div class="card"><div>${b.name}<small>${b.steps.map(s=>STEP[s[0]][0]+' '+s[1]).join('・')}</small></div>
+ <div class="row"><select data-id="${b.id}">${[1,3,5,10].map(m=>`<option ${ (mins[b.id]||3)==m?'selected':''}>${m}</option>`).join('')}</select>分
+ <button class="pri" data-go="${b.id}">開始</button></div></div>`).join('');
+ $('#view').querySelectorAll('[data-go]').forEach(btn=>btn.onclick=()=>{const b=BREATHS.find(x=>x.id===btn.dataset.go);const m=+$(`select[data-id="${b.id}"]`).value;mins[b.id]=m;store.set('bmins',mins);startBreath(b,m)});
+}
+const play={timer:null,paused:false};
+function showPlay(bg,fg){const p=$('#play');p.style.background=bg;p.style.color=fg;p.classList.add('show');P.wake(true);$('#pbtn').textContent='暫停';$('#sbtn').style.display='none';play.paused=false}
+function hidePlay(){clearTimeout(play.timer);$('#play').classList.remove('show');P.wake(false);speechSynthesis?.cancel()}
+// b=true: breathing — says 準備 at the start, then a calm 開始 with a pause before the first step
+function countdown(n,then,b){try{P.ctx().resume()}catch(e){}const p=b?'#b':'#c';$(p+'step').textContent='準備';$(p+'num').textContent=n;P.beep(440,.2);
+ if(b&&n===3)setTimeout(()=>P.say('準備'),300);if(!b&&n===1)P.say('開始');
+ play.timer=setTimeout(()=>{if(n>1)return countdown(n-1,then,b);if(!b)return then();
+  $(p+'step').textContent='開始';$(p+'num').textContent='';P.say('開始');play.timer=setTimeout(then,1800)},1000)}
+function startBreath(b,mins){
+ const dark=document.documentElement.dataset.theme==='dark';
+ showPlay(dark?'#110F24':'#2E2966','#EEEDFE');$('#play').classList.add('breath');
+ const total=mins*60;let done=0,cycles=0;const st=$('#bstage');
+ const size=(s,d)=>{st.style.setProperty('--s',s);st.style.setProperty('--d',d+'s')};
+ $('#pinfo').textContent=b.name;
+ const cyc=()=>{let i=0;const step=()=>{
+   if(i>=b.steps.length){cycles++;if(done>=total)return finish();return cyc()}
+   const[k,sec]=b.steps[i];st.classList.toggle('hold',k==='hold');
+   if(k==='in')size(.88,sec);else if(k==='out')size(.42,sec);
+   $('#bstep').textContent=STEP[k];P.say(STEP[k]);P.buzz();
+   let left=sec;const tick=()=>{if(play.paused)return play.timer=setTimeout(tick,300);
+     if(left===0){i++;return step()}
+     $('#bnum').textContent=left;$('#ptime').textContent='剩餘 '+fmt(Math.max(0,total-done));
+     left--;done++;play.timer=setTimeout(tick,1000)};tick()};step()};
+ const finish=()=>{P.beep(660,.8);P.say('結束');addLog('breath',b.name,done);hidePlay();st.classList.remove('hold');doneScreen(b.name,done,cycles+' 個循環')};
+ play.restart=()=>{st.classList.remove('hold');size(.42,1.2);countdown(3,cyc,true)};
+ play.end=()=>{addLog('breath',b.name,done);hidePlay();st.classList.remove('hold');doneScreen(b.name,done,cycles+' 個循環')};
+ st.classList.remove('hold');size(.42,0);$('#ptime').textContent='';
+ countdown(3,cyc,true);
+}
+$('#pbtn').onclick=()=>{if(!play.paused){play.paused=true;clearTimeout(play.timer);speechSynthesis?.cancel();$('#pbtn').textContent='繼續';$('#sbtn').style.display=''}else{play.paused=false;$('#pbtn').textContent='暫停';$('#sbtn').style.display='none';clearTimeout(play.timer);play.restart()}};
+$('#sbtn').onclick=()=>play.end();
+function fmt(s){return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
+function doneScreen(name,sec,extra){$('#view').innerHTML=`<h1>完成 🎉</h1><div class="card"><div>${name}<small>${fmt(sec)}・${extra}</small></div></div><div class="row"><button class="pri" onclick="render()">回到首頁</button></div>`}
+// ---------- exercise: interval timer ----------
+function rEx(){
+ const c=store.get('excfg',{work:20,rest:10,rounds:8});
+ $('#view').innerHTML=`<h1>運動</h1><div class="card" style="display:block"><b>間歇計時（Tabata）</b>
+ <div class="row">運動 <input id="ew" type="number" min="1" value="${c.work}"> 秒</div>
+ <div class="row">休息 <input id="er" type="number" min="0" value="${c.rest}"> 秒</div>
+ <div class="row">組數 <input id="en" type="number" min="1" value="${c.rounds}"></div>
+ <button class="pri" id="ego">開始</button></div><p class="empty">自訂運動菜單還在討論中，之後加入。</p>`;
+ $('#ego').onclick=()=>{const cfg={work:+$('#ew').value||20,rest:+$('#er').value||0,rounds:+$('#en').value||1};store.set('excfg',cfg);startEx(cfg)};
+}
+function startEx(cfg){
+ const dark=document.documentElement.dataset.theme==='dark';showPlay(dark?'#1C120E':'#FBEDE6',dark?'#F5C4B3':'#712B13');$('#play').classList.remove('breath');
+ const c=$('#circle');c.style.transitionDuration='.4s';c.style.width=c.style.height='200px';
+ let r=1,phase='work',left=cfg.work,done=0;
+ const set=()=>{$('#pinfo').textContent=`第 ${r}/${cfg.rounds} 組`;$('#cstep').textContent=phase==='work'?'運動':'休息';c.style.background=phase==='work'?'#E8825E':'#F5C4B3';c.style.color=phase==='work'?'#fff':'#712B13';P.say(phase==='work'?'開始':'休息');P.buzz(200)};
+ const tick=()=>{if(play.paused)return play.timer=setTimeout(tick,300);
+  $('#cnum').textContent=left;$('#ptime').textContent='';if(left<=3&&left>0)P.beep(520,.15);
+  if(left===0){if(phase==='work'&&cfg.rest>0&&r<cfg.rounds){phase='rest';left=cfg.rest;set()}else if(r<cfg.rounds){r++;phase='work';left=cfg.work;set()}else{P.beep(660,.8);P.say('完成');addLog('ex','間歇計時',done);hidePlay();c.style.color='';return doneScreen('間歇計時',done,cfg.rounds+' 組')}}
+  else{left--;done++}play.timer=setTimeout(tick,1000)};
+ play.restart=()=>tick();play.end=()=>{addLog('ex','間歇計時',done);hidePlay();c.style.color='';doneScreen('間歇計時',done,(r-1)+' 組')};
+ countdown(3,()=>{set();tick()});
+}
+// ---------- stretching ----------
+function rSt(){$('#view').innerHTML='<h1>拉伸</h1><p class="empty">拉伸分頁還在討論中<br>定案後會加入引導式拉伸。</p>'}
+// ---------- habits ----------
+function dayKey(t){const d=new Date(t);return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()}
+function rHb(){
+ const l=LOG(),days={};l.forEach(e=>{(days[dayKey(e.t)]??=new Set()).add(e.type)});
+ let streak=0;const d=new Date();if(!days[dayKey(d)])d.setDate(d.getDate()-1);while(days[dayKey(d)]){streak++;d.setDate(d.getDate()-1)}
+ const today=days[dayKey(Date.now())]||new Set();
+ const now=new Date(),y=now.getFullYear(),m=now.getMonth(),first=new Date(y,m,1).getDay(),n=new Date(y,m+1,0).getDate();
+ const col={breath:'#7F77DD',ex:'#E8825E',st:'#5DCAA5'};
+ let cal='';for(let i=0;i<first;i++)cal+='<span></span>';
+ for(let i=1;i<=n;i++){const s=days[y+'-'+(m+1)+'-'+i];cal+=`<div>${i}<div class="dots">${s?[...s].map(t=>`<span style="background:${col[t]}"></span>`).join(''):''}</div></div>`}
+ $('#view').innerHTML=`<h1>習慣<button id="gear" aria-label="設定">⚙️</button></h1>
+ <div class="card"><div class="stat"><b>${streak}</b>連續天數</div><div class="stat"><b>${today.size}/3</b>今日完成</div><div class="stat"><b>${l.length}</b>總次數</div></div>
+ <div class="card" style="display:block"><b>${y} 年 ${m+1} 月</b><div class="cal" style="margin-top:8px">${'日一二三四五六'.split('').map(x=>`<span style="color:var(--muted)">${x}</span>`).join('')}${cal}</div></div>
+ <p class="empty" style="padding:10px">自訂習慣與更多統計還在討論中。</p>`;
+ $('#gear').onclick=rSettings;
+}
+function rSettings(){
+ $('#view').innerHTML=`<h1>設定<button onclick="render()">返回</button></h1>
+ <div class="card">外觀<select id="th" style="width:auto"><option value="auto">跟隨系統</option><option value="light">淺色</option><option value="dark">深色</option></select></div>
+ <div class="card">語音提示<input type="checkbox" id="sv" style="width:auto"></div>
+ <div class="card">語音聲音<select id="vt" style="width:auto"><option value="f">女聲</option><option value="m">男聲</option></select></div>
+ <div class="card">音效<input type="checkbox" id="ss" style="width:auto"></div>
+ <div class="card">震動（Android）<input type="checkbox" id="sb" style="width:auto"></div>
+ <div class="card">備份<div class="row"><button id="exp">匯出</button><button id="imp">匯入</button></div></div>`;
+ $('#th').value=S.theme;$('#sv').checked=S.voice;$('#vt').value=S.voiceType||'f';$('#ss').checked=S.sound;$('#sb').checked=S.vibrate;
+ const save=()=>{S.theme=$('#th').value;S.voice=$('#sv').checked;S.voiceType=$('#vt').value;S.sound=$('#ss').checked;S.vibrate=$('#sb').checked;store.set('settings',S);applyTheme();P.load()};
+ ['th','sv','vt','ss','sb'].forEach(i=>$('#'+i).onchange=save);
+ $('#exp').onclick=()=>{const data={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);data[k]=localStorage.getItem(k)}const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data)],{type:'application/json'}));a.download='breath-app-backup.json';a.click()};
+ $('#imp').onclick=()=>{const f=document.createElement('input');f.type='file';f.accept='.json';f.onchange=async()=>{try{const d=JSON.parse(await f.files[0].text());if(!confirm('匯入會覆蓋目前的資料，確定嗎？'))return;Object.entries(d).forEach(([k,v])=>localStorage.setItem(k,v));location.reload()}catch(e){alert('檔案格式不正確')}};f.click()};
+}
+go('breath');
+if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
