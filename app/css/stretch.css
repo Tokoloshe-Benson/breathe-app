@@ -1,1 +1,42 @@
-/* 拉伸分頁樣式（拉伸對話維護） */
+/* 拉伸分頁樣式（拉伸對話維護）— 柔和放鬆、薄荷綠 */
+/* 列表頁 */
+.stsec{font-size:14px;color:var(--muted);margin:18px 4px 4px}
+.stsec small{margin-left:6px}
+.stitem{cursor:pointer}
+.stgo{color:var(--muted);font-size:22px}
+.stquick{border:1.5px solid var(--accent)}
+.stchips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}
+.stchips button{padding:6px 12px;border-radius:999px;font-size:14px;border:1px solid var(--line)}
+.stchips button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.stline{justify-content:flex-start}
+.stno{width:24px;height:24px;border-radius:50%;background:var(--st-bg);color:var(--accent);font-size:13px;display:flex;align-items:center;justify-content:center;flex:none}
+.stmv{display:flex;gap:4px}.stmv button{padding:6px 9px;border:1px solid var(--line)}
+.stmv button:disabled{opacity:.3}
+.stpick{display:block;width:100%;text-align:left;margin:4px 0;border:1px solid var(--line)}
+.stpick small{color:var(--muted);margin-left:8px}
+.stdanger{color:#C0392B}
+.sthowtxt{line-height:1.7;margin:8px 0 4px}
+.sttip{color:var(--muted);margin:0;display:block}
+/* 練習中 */
+#stbox{display:none}
+#play.st #circle,#play.st #bstage,#play.st #ptime{display:none}
+#play.st{gap:14px;padding:24px 16px calc(24px + env(safe-area-inset-bottom));justify-content:center}
+#play.st #stbox{display:flex;flex-direction:column;align-items:center;gap:8px;width:100%;max-width:420px;text-align:center}
+#stlabel{font-size:14px;letter-spacing:.15em;opacity:.7;min-height:1.2em}
+#stmname{font-size:26px;font-weight:600}
+#stside{font-size:17px;font-weight:600;color:var(--accent);min-height:1.3em}
+#string{position:relative;width:min(56vw,210px);aspect-ratio:1;margin:6px 0;transition:opacity .6s}
+#string svg{width:100%;height:100%;transform:rotate(-90deg)}
+#string circle{fill:none;stroke-width:5}
+#string .trk{stroke:currentColor;opacity:.12}
+#string .arc{stroke:var(--accent);stroke-linecap:round;stroke-dasharray:100;transition:stroke-dashoffset 1s linear}
+#stnum{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:52px;font-weight:600;font-variant-numeric:tabular-nums}
+#play.stprep #string{opacity:.45}
+#sthow{font-size:15px;line-height:1.7;opacity:.85;max-width:34em}
+#sthow .sttip{color:inherit;opacity:.75;margin-top:4px;font-size:14px}
+#stnext{font-size:14px;opacity:.6;min-height:1.2em}
+.stctl{display:flex;gap:8px;justify-content:center;margin-top:6px;flex-wrap:wrap}
+#play .stctl button,#play.st #pbtn,#play.st #sbtn{background:rgba(255,255,255,.55);color:inherit}
+:root[data-theme="dark"] #play .stctl button,:root[data-theme="dark"] #play.st #pbtn,:root[data-theme="dark"] #play.st #sbtn{background:rgba(255,255,255,.08)}
+#play .stctl button:disabled{opacity:.35}
+@media (max-height:640px){#sthow{font-size:13px}#stmname{font-size:22px}#string{width:min(44vw,160px)}#stnum{font-size:40px}}
