@@ -252,20 +252,42 @@ const cur=()=>X.i<0?null:X.steps[X.i];
 const isWork=s=>s&&s.k!=='rest';
 const nextWork=i=>X.steps.slice(i+1).find(isWork);
 function say(t,delay=180){setTimeout(()=>{if(!play.paused)P.say(t)},delay)}
+// ---------- 預錄語音（audio/ex/{f,m}/）----------
+// 一句話拆成片段（動作名稱、數字、下／秒、休息、下一個），依序接起來播放；
+// 只要缺任何一段（例如自訂動作名稱、不常見的秒數），整句改用 P.say（手機語音）。
+const NUMS=new Set([...Array(60)].map((_,i)=>i+1).concat([70,75,80,90,100,120,150,180]));
+const VB={},voiceNow=[];
+const vt=()=>S.voiceType||'f';
+function toks(s){
+ if(!s.named)return['w_go'];const m=EXL.find(x=>x.name===s.name),n=s.k==='reps'||s.k==='emom'?s.n:s.sec;
+ return m&&NUMS.has(n)?['mv_'+m.id,'n'+n,s.k==='reps'||s.k==='emom'?'w_rep':'w_sec']:null}
+function restToks(sec,nw){const a=sec==null?['w_rest']:NUMS.has(sec)?['w_rest','n'+sec,'w_sec']:null,b=nw?toks(nw):[];
+ return a&&b?(nw?[...a,',','w_next',...b]:a):null}
+function loadClips(keys){const v=vt();keys.forEach(k=>{if(k===','||VB[v+'/'+k])return;VB[v+'/'+k]=1;
+ fetch(`audio/ex/${v}/${k}.mp3`).then(r=>{if(!r.ok)throw 0;return r.arrayBuffer()}).then(a=>P.ctx().decodeAudioData(a)).then(b=>VB[v+'/'+k]=b).catch(()=>delete VB[v+'/'+k])})}
+function hush(){voiceNow.splice(0).forEach(x=>{try{x.stop()}catch(e){}});window.speechSynthesis?.cancel()}
+function speak(keys,text,delay=180){
+ setTimeout(()=>{if(play.paused||!S.voice)return;hush();const v=vt();
+  if(!keys||!keys.every(k=>k===','||VB[v+'/'+k] instanceof AudioBuffer))return P.say(text);
+  try{const ac=P.ctx();let t=ac.currentTime+.03;
+   keys.forEach(k=>{if(k===','){t+=.28;return}const b=VB[v+'/'+k],src=ac.createBufferSource();src.buffer=b;src.connect(ac.destination);src.start(t);voiceNow.push(src);t+=b.duration+.07})}
+  catch(e){P.say(text)}},delay)}
+function preloadFor(steps){const ks=new Set(['w_go','w_rest','w_next','w_sec','w_rep']);
+ steps.forEach(s=>{(s.k==='rest'?['n'+s.sec]:toks(s)||[]).forEach(k=>ks.add(k))});loadClips([...ks])}
 function startEx(r){
  if(!r)return;try{P.ctx().resume()}catch(e){}
  const steps=build(r);if(!steps.length)return alert('這份還沒有任何動作');
  Object.assign(X,{r,steps,i:-1,left:Math.max(0,+r.prep||0),elapsed:0,emomRest:false,adj:false,
   res:steps.map(s=>s.k==='rest'?null:{done:false,skipped:false,actual:s.k==='time'?null:s.n})});
- showPlay('#FBEDE6','#712B13');const p=$('#play');p.classList.add('ex');$('#exstage')?.remove();p.insertAdjacentHTML('beforeend',STAGE);bindStage();
+ preloadFor(steps);showPlay('#FBEDE6','#712B13');const p=$('#play');p.classList.add('ex');$('#exstage')?.remove();p.insertAdjacentHTML('beforeend',STAGE);bindStage();
  play.end=()=>finish(false);play.restart=run;
  if(X.left>0){paint();say('準備',0);run()}else{enter(0);run()}
 }
 function run(){clearTimeout(play.timer);if(!play.paused)play.timer=setTimeout(tick,1000)}
 function enter(i){
  X.i=i;X.emomRest=false;X.adj=false;const s=cur();X.left=s.k==='reps'?null:s.sec;paint();
- if(s.k==='rest'){P.beep(440,.3);const nw=nextWork(i);say(`休息 ${s.sec} 秒`+(nw?`，下一個，${desc(nw)}`:''))}
- else{P.beep(880,.3);say(s.named?desc(s):'運動')}
+ if(s.k==='rest'){P.beep(440,.3);const nw=nextWork(i);speak(restToks(s.sec,nw),`休息 ${s.sec} 秒`+(nw?`，下一個，${desc(nw)}`:''))}
+ else{P.beep(880,.3);speak(toks(s),s.named?desc(s):'運動')}
 }
 function next(){if(X.i+1>=X.steps.length)return finish(true);enter(X.i+1);run()}
 function tick(){
@@ -301,21 +323,21 @@ function paint(){
  $('#exPause').textContent=play.paused?'繼續':'暫停';
 }
 function bindStage(){
- $('#exPause').onclick=()=>{play.paused=!play.paused;if(play.paused){clearTimeout(play.timer);window.speechSynthesis?.cancel()}paint();run()};
+ $('#exPause').onclick=()=>{play.paused=!play.paused;if(play.paused){clearTimeout(play.timer);hush()}paint();run()};
  $('#exDone').onclick=()=>{const s=cur();X.res[X.i].done=true;X.res[X.i].skipped=false;
-  if(s.k==='emom'&&X.left>1){X.emomRest=true;X.adj=false;P.beep(440,.3);const nw=nextWork(X.i);say('休息'+(nw?`，下一個，${desc(nw)}`:''));paint()}else{next()}};
+  if(s.k==='emom'&&X.left>1){X.emomRest=true;X.adj=false;P.beep(440,.3);const nw=nextWork(X.i);speak(restToks(null,nw),'休息'+(nw?`，下一個，${desc(nw)}`:''));paint()}else{next()}};
  $('#exNum').onclick=()=>{if($('#exNum').disabled)return;X.adj=!X.adj;paint()};
  $('#exAdj').onclick=e=>{const b=e.target.closest('button'),s=cur();if(!b||!s||s.k==='time'||s.k==='rest'||X.emomRest)return;const r=X.res[X.i];r.actual=Math.max(0,r.actual+ +b.dataset.d);paint()};
  $('#exMore').onclick=()=>{X.left+=10;paint()};
  $('#exSkip').onclick=()=>{const s=cur();if(!s){enter(0);return run()}if(isWork(s)&&!X.res[X.i].done)X.res[X.i].skipped=true;next()};
  $('#exPrev').onclick=()=>{let j=X.i-1;while(j>=0&&!isWork(X.steps[j]))j--;if(j<0)return;
   const s=X.steps[j];X.res[j]={done:false,skipped:false,actual:s.k==='time'?null:s.n};enter(j);run()};
- $('#exEnd').onclick=()=>{X.wasPaused=play.paused;play.paused=true;clearTimeout(play.timer);window.speechSynthesis?.cancel();$('#exConfirm').classList.add('show');paint()};
+ $('#exEnd').onclick=()=>{X.wasPaused=play.paused;play.paused=true;clearTimeout(play.timer);hush();$('#exConfirm').classList.add('show');paint()};
  $('#exNo').onclick=()=>{$('#exConfirm').classList.remove('show');play.paused=X.wasPaused;paint();run()};
  $('#exYes').onclick=()=>finish(false);
 }
 function finish(complete){
- clearTimeout(play.timer);window.speechSynthesis?.cancel();
+ clearTimeout(play.timer);hush();
  const steps=[],skipped=[];let notReached=0;const moves=new Set();
  X.steps.forEach((s,i)=>{if(!isWork(s))return;const r=X.res[i];
   steps.push({name:s.name,k:s.k,set:s.set,loop:s.loop,target:s.k==='time'?s.sec:s.n,actual:r.done?(s.k==='time'?s.sec:r.actual):0,kg:s.kg===''?undefined:s.kg,done:r.done,skipped:r.skipped});
