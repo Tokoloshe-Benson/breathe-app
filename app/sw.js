@@ -1,9 +1,9 @@
 // 離線快取（架構對話維護）
 // 本站檔案：先用網路拿最新版，順便存進快取；沒網路時用快取 → 新增檔案不用改這裡。
 // Google 字體、Fluent 表情圖：先用快取，沒有才下載。
-const C='v7';
+const C='v8';
 const FL='https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets/';
-const PRE=['./','index.html','manifest.json','icon.svg',
+const PRE=['./','index.html','manifest.json','icon.svg','icons/icon-192.png','icons/icon-512.png','icons/apple-touch-icon.png',
  'css/style.css','css/breath.css','css/exercise.css','css/stretch.css','css/habit.css',
  'js/core.js','js/breath.js','js/exercise.js','js/stretch.js','js/habit.js','js/log.js','js/settings.js','js/main.js',
  ...['f','m'].flatMap(v=>['prep','start','in','hold','out','end'].map(k=>'audio/'+v+'/'+k+'.mp3')),
