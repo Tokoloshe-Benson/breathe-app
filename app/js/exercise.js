@@ -277,7 +277,7 @@ function preloadFor(steps){const ks=new Set(['w_go','w_rest','w_next','w_sec','w
 function startEx(r){
  if(!r)return;try{P.ctx().resume()}catch(e){}
  const steps=build(r);if(!steps.length)return alert('這份還沒有任何動作');
- Object.assign(X,{r,steps,i:-1,left:Math.max(0,+r.prep||0),elapsed:0,emomRest:false,adj:false,
+ Object.assign(X,{r,steps,i:-1,left:Math.max(0,+r.prep||0),elapsed:0,emomRest:false,adj:false,carry:{},
   res:steps.map(s=>s.k==='rest'?null:{done:false,skipped:false,actual:s.k==='time'?null:s.n})});
  preloadFor(steps);showPlay('#FBEDE6','#712B13');const p=$('#play');p.classList.add('ex');$('#exstage')?.remove();p.insertAdjacentHTML('beforeend',STAGE);bindStage();
  play.end=()=>finish(false);play.restart=run;
@@ -330,11 +330,13 @@ function bindStage(){
  $('#exDone').onclick=()=>{const s=cur();X.res[X.i].done=true;X.res[X.i].skipped=false;
   if(s.k==='emom'&&X.left>1){X.emomRest=true;X.adj=false;P.beep(440,.3);const nw=nextWork(X.i);speak(restToks(null,nw),'休息'+(nw?`，下一個，${desc(nw)}`:''));paint()}else{next()}};
  $('#exReps').onclick=()=>{X.adj=!X.adj;paint()};
- $('#exAdj').onclick=e=>{const b=e.target.closest('button'),s=cur();if(!b||!s||s.k==='time'||s.k==='rest'||X.emomRest)return;const r=X.res[X.i];r.actual=Math.max(0,r.actual+ +b.dataset.d);paint()};
+ $('#exAdj').onclick=e=>{const b=e.target.closest('button'),s=cur();if(!b||!s||s.k==='time'||s.k==='rest'||X.emomRest)return;const r=X.res[X.i];r.actual=Math.max(0,r.actual+ +b.dataset.d);
+  // 改過的次數沿用到同一個動作後面還沒做的組與輪（菜單設定本身不變）
+  X.carry[s.ii]=r.actual;X.steps.forEach((t,j)=>{if(j>X.i&&t.ii===s.ii&&t.k===s.k&&X.res[j]&&!X.res[j].done)X.res[j].actual=r.actual});paint()};
  $('#exMore').onclick=()=>{X.left+=10;paint()};
  $('#exSkip').onclick=()=>{const s=cur();if(!s){enter(0);return run()}if(isWork(s)&&!X.res[X.i].done)X.res[X.i].skipped=true;next()};
  $('#exPrev').onclick=()=>{let j=X.i-1;while(j>=0&&!isWork(X.steps[j]))j--;if(j<0)return;
-  const s=X.steps[j];X.res[j]={done:false,skipped:false,actual:s.k==='time'?null:s.n};enter(j);run()};
+  const s=X.steps[j];X.res[j]={done:false,skipped:false,actual:s.k==='time'?null:(X.carry[s.ii]??s.n)};enter(j);run()};
  $('#exEnd').onclick=()=>{X.wasPaused=play.paused;play.paused=true;clearTimeout(play.timer);hush();$('#exConfirm').classList.add('show');paint()};
  $('#exNo').onclick=()=>{$('#exConfirm').classList.remove('show');play.paused=X.wasPaused;paint();run()};
  $('#exYes').onclick=()=>finish(false);
