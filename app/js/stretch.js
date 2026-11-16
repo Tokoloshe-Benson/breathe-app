@@ -49,9 +49,26 @@ function stTotal(items){let t=0;ST.valid(items).forEach(([id,s],i)=>{t+=ST_MOVES
 const stLen=t=>t<60?t+' 秒':'約 '+Math.max(1,Math.round(t/60))+' 分鐘';
 const stSideName=s=>s==='L'?'左邊':'右邊';
 
+// ---------- 預錄語音（audio/st/{f,m}/）----------
+// 片段：mv_<動作id>、w_left 左邊、w_right 右邊、w_swl 換左邊、w_swr 換右邊、w_first 先做、w_next 下一個
+// 依序接起來播放；缺任何片段（例如還沒下載好）整句改用 P.say（手機語音）。「開始」「結束」用核心的預錄。
+const STV={},stNow=[];
+const stKeys=()=>[...Object.keys(ST_MOVES).map(k=>'mv_'+k),'w_left','w_right','w_swl','w_swr','w_first','w_next'];
+function stLoad(){const v=S.voiceType||'f';stKeys().forEach(k=>{if(STV[v+'/'+k])return;STV[v+'/'+k]=1;
+ fetch(`audio/st/${v}/${k}.mp3`).then(r=>{if(!r.ok)throw 0;return r.arrayBuffer()}).then(a=>P.ctx().decodeAudioData(a)).then(b=>STV[v+'/'+k]=b).catch(()=>delete STV[v+'/'+k])})}
+function stHush(){stNow.splice(0).forEach(x=>{try{x.stop()}catch(e){}});window.speechSynthesis?.cancel()}
+function stSpeak(keys,text){
+ if(!S.voice)return;stHush();const v=S.voiceType||'f';
+ if(!keys.every(k=>k===','||STV[v+'/'+k] instanceof AudioBuffer))return P.say(text);
+ try{const ac=P.ctx();let t=ac.currentTime+.03;
+  keys.forEach(k=>{if(k===','){t+=.25;return}const b=STV[v+'/'+k],s=ac.createBufferSource();s.buffer=b;s.connect(ac.destination);s.start(t);stNow.push(s);t+=b.duration+.06})}
+ catch(e){P.say(text)}}
+$('#pbtn').addEventListener('click',()=>{if(play.paused&&$('#play').classList.contains('st'))stHush()});
+
 // ---------- 列表頁 ----------
 let stArea='全部';
 function rSt(){
+ stLoad();
  const custom=ST.custom(),last=ST.find(store.get('st.last',''));
  const card=s=>`<div class="card stitem" data-open="${s.id}"><div>${stEsc(s.name)}<small>${s.desc?stEsc(s.desc)+'・':''}${stLen(stTotal(s.items))}・${ST.valid(s.items).length} 個動作</small></div><span class="stgo">›</span></div>`;
  const moves=Object.entries(ST_MOVES).filter(([,m])=>stArea==='全部'||m.area===stArea);
@@ -163,7 +180,7 @@ function stSegs(items){
 function startSt(r){
  const items=ST.valid(r.items);if(!items.length)return;
  if(r.id)store.set('st.last',r.id);
- try{P.ctx().resume()}catch(e){}
+ try{P.ctx().resume()}catch(e){}stLoad();
  const dark=isDark(),bg=dark?'#0E1A15':'#E6F4EE',flash=dark?'#1C3A2E':'#C7E8D9';
  showPlay(bg,dark?'#CDEBDD':'#0F4D3A');stBox();$('#play').classList.add('st');
  const segs=stSegs(items),reached=new Set();let k=-1,done=0;
@@ -180,14 +197,15 @@ function startSt(r){
   $('#stnext').textContent=s.k==='hold'&&nx?'下一個：'+ST_MOVES[nx[0]].name:'';
   $('#stplus').disabled=s.k!=='hold';$('#stprev').disabled=k===0;
   arc.style.transition='none';paint();arc.getBoundingClientRect();arc.style.transition='';
-  if(s.k==='prep')P.say(m.name+(s.side?'，先做'+stSideName(s.side):''));
-  else if(s.k==='switch'){P.beep(600,.3);P.buzz(150);P.say('換'+stSideName(s.side))}
+  const sw=s.side==='L'?'w_left':'w_right';
+  if(s.k==='prep')stSpeak([...(s.i?['w_next',',']:[]),'mv_'+items[s.i][0],...(s.side?[',','w_first',sw]:[])],(s.i?'下一個，':'')+m.name+(s.side?'，先做'+stSideName(s.side):''));
+  else if(s.k==='switch'){P.beep(600,.3);P.buzz(150);stSpeak([s.side==='L'?'w_swl':'w_swr'],'換'+stSideName(s.side))}
   else{reached.add(s.i);P.beep(520,.2);if(segs[k-1]?.k!=='switch')P.say('開始')}
  };
  const step=()=>{clearTimeout(play.timer);play.timer=setTimeout(()=>{const s=segs[k];s.left--;done++;
   if(s.left<=0)return go(k+1);if(s.k==='hold'&&s.left<=3)P.beep(520,.12);paint();step()},1000)};
  const go=n=>{clearTimeout(play.timer);if(n>=segs.length)return finish(true);k=n;const s=segs[k];s.left=s.dur=s.sec;enter();if(!play.paused)step()};
- const finish=full=>{clearTimeout(play.timer);
+ const finish=full=>{clearTimeout(play.timer);stHush();
   if(full){P.beep(660,.8);P.say('結束')}
   const n=full?items.length:reached.size;
   const idx=addLog('st',r.name,done,{moves:n,routineId:r.id||null});
