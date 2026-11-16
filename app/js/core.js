@@ -44,7 +44,8 @@ const play={timer:null,paused:false};
 function showPlay(bg,fg){const p=$('#play');p.className='';p.style.background=bg;p.style.color=fg;p.classList.add('show');P.wake(true);$('#pbtn').textContent='暫停';$('#sbtn').style.display='none';play.paused=false}
 function hidePlay(){clearTimeout(play.timer);$('#play').classList.remove('show');P.wake(false);window.speechSynthesis?.cancel()}
 // b=true: breathing — says 準備 at the start, then a calm 開始 with a pause before the first step
-function countdown(n,then,b){try{P.ctx().resume()}catch(e){}const p=b?'#b':'#c';$(p+'step').textContent='準備';$(p+'num').textContent=n;P.beep(440,.2);
+// 呼吸練習選「只開語音」（breath.cue === 'voice'）時，倒數不嗶
+function countdown(n,then,b){try{P.ctx().resume()}catch(e){}const p=b?'#b':'#c';$(p+'step').textContent='準備';$(p+'num').textContent=n;if(!(b&&store.get('breath.cue','both')==='voice'))P.beep(440,.2);
  if(b&&n===3)setTimeout(()=>P.say('準備'),300);if(!b&&n===1)P.say('開始');
  play.timer=setTimeout(()=>{if(n>1)return countdown(n-1,then,b);if(!b)return then();
   $(p+'step').textContent='開始';$(p+'num').textContent='';P.say('開始');play.timer=setTimeout(then,1800)},1000)}
