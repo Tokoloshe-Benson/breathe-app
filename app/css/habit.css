@@ -1,5 +1,41 @@
 /* 習慣分頁樣式（習慣對話維護） */
-.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:13px}
-.cal div{padding:6px 0;border-radius:8px;background:var(--card);min-height:40px}
-.dots span{display:inline-block;width:6px;height:6px;border-radius:50%;margin:0 1px}
 .stat{flex:1;text-align:center}.stat b{font-size:26px;display:block}
+.hbhead{display:flex;justify-content:space-between;align-items:center;margin:18px 4px 0}
+.hbhead button{padding:6px 12px;font-size:14px}
+.hbrow{justify-content:flex-start;gap:12px}
+.hbdot{width:10px;height:10px;border-radius:50%;flex:none}
+.hbname{flex:1;min-width:0}
+.hbrow.ok .hbname{color:var(--muted)}
+.hbchk{width:40px;height:40px;padding:0;border-radius:50%;border:2px solid var(--hc);background:transparent;color:#fff;font-size:20px;flex:none;transition:background .2s,transform .15s}
+.hbchk.on{background:var(--hc)}
+.hbchk:active{transform:scale(.9)}
+.hbchk:disabled{cursor:default;opacity:.9}
+.hbcnt{display:flex;align-items:center;gap:6px;flex:none}
+.hbcnt button{width:34px;height:34px;padding:0;border-radius:50%;background:var(--bg);font-size:18px}
+.hbcnt b{min-width:44px;text-align:center}
+.hbmonth{display:flex;justify-content:space-between;align-items:center}
+.hbmonth button{padding:4px 12px;background:var(--bg);font-size:18px}
+.hbmonth button:disabled{opacity:.3}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:13px}
+.cal .hbday{padding:6px 0;border-radius:8px;background:var(--bg);min-height:40px;font-size:13px}
+.cal .hbday.today{outline:2px solid var(--accent)}
+.cal .hbday:disabled{opacity:.35;cursor:default}
+.dots{min-height:6px}
+.dots span{display:inline-block;width:6px;height:6px;border-radius:50%;margin:0 1px}
+.hbhint{display:block;color:var(--muted);margin-top:8px;font-size:12px}
+.hblink{width:100%;text-align:left}
+.hblink small{display:inline;margin:0}
+.hbnote{color:var(--muted);font-size:14px;line-height:1.6;margin:0 4px 8px}
+.hbm button{padding:6px 12px;font-size:14px;background:var(--bg)}
+.hbm{justify-content:flex-start;gap:12px}
+.hbform label,.hbf{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:12px 0;flex-wrap:wrap}
+.hbform #hbn{width:auto;flex:1;min-width:140px}
+.hbform .row{margin:0}
+.hbform .row button{background:var(--bg);padding:8px 12px}
+body[data-tab="hb"] .pri{background:var(--accent);color:var(--card)}
+.hbform small{color:var(--muted);display:block}
+.hbsw{width:30px;height:30px;padding:0;border-radius:50%}
+.hbsw.on{outline:3px solid var(--text);outline-offset:2px}
+.hbchkl{justify-content:flex-start!important}
+.hbchkl input{width:auto}
+.hberr{color:#D85A30;font-size:13px;margin:0;min-height:1em}
