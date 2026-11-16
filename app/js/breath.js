@@ -158,7 +158,7 @@ function startBreath(b,d){
  $('#pinfo').textContent=b.name;
  const cyc=()=>{let i=0;const step=()=>{
    if(i>=b.steps.length){cycles++;if(done>=total||cycles>=goal)return finish();return cyc()}
-   const[k,sec]=b.steps[i];st.classList.toggle('hold',k==='hold');
+   const[k,sec]=b.steps[i];st.classList.toggle('hold',k==='hold');st.dataset.k=k;
    if(k==='in')size(.88,sec);else if(k==='out')size(.42,sec);
    $('#bstep').textContent=STEP[k];bSay(STEP[k]);if(k!=='hold')bSfx.breath(k,sec);P.buzz();
    let left=sec;const tick=()=>{if(play.paused)return play.timer=setTimeout(tick,300);
@@ -170,7 +170,7 @@ function startBreath(b,d){
  const finish=()=>{bSfx.bell();bSay('結束');end()};
  play.restart=()=>{st.classList.remove('hold');size(.42,1.2);bDim.arm();countdown(3,cyc,true)};
  play.end=end;
- st.classList.remove('hold');size(.42,0);info();bDim.arm();
+ st.classList.remove('hold');delete st.dataset.k;size(.42,0);info();bDim.arm();
  countdown(3,cyc,true);
 }
 registerTab('breath',rBreath);
