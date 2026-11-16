@@ -6,7 +6,9 @@ function rSettings(){
  <div class="card">語音聲音<select id="vt" style="width:auto"><option value="f">女聲</option><option value="m">男聲</option></select></div>
  <div class="card">音效<input type="checkbox" id="ss" style="width:auto"></div>
  <div class="card">震動（Android）<input type="checkbox" id="sb" style="width:auto"></div>
+ <div class="card">練習紀錄<button id="logs">查看</button></div>
  <div class="card">備份<div class="row"><button id="exp">匯出</button><button id="imp">匯入</button></div></div>`;
+ $('#logs').onclick=()=>openLog(rSettings);
  $('#th').value=S.theme;$('#sv').checked=S.voice;$('#vt').value=S.voiceType||'f';$('#ss').checked=S.sound;$('#sb').checked=S.vibrate;
  const save=()=>{S.theme=$('#th').value;S.voice=$('#sv').checked;S.voiceType=$('#vt').value;S.sound=$('#ss').checked;S.vibrate=$('#sb').checked;store.set('settings',S);applyTheme();P.load()};
  ['th','sv','vt','ss','sb'].forEach(i=>$('#'+i).onchange=save);

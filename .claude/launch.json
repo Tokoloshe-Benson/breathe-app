@@ -12,6 +12,18 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "5174", "--directory", "app"],
       "port": 5174
+    },
+    {
+      "name": "app-exercise",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "5175", "--directory", "app"],
+      "port": 5175
+    },
+    {
+      "name": "app-stretch",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "5176", "--directory", "app"],
+      "port": 5176
     }
   ]
 }

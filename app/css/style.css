@@ -29,5 +29,15 @@ input,select{font:inherit;padding:8px;border-radius:10px;border:1px solid var(--
 #pinfo{font-size:16px;opacity:.8}
 /* 完成畫面的心情 */
 .mood{display:flex;justify-content:space-between;gap:6px}
-.mood button{font-size:28px;padding:8px;flex:1;background:var(--card)}
-.mood button.on{outline:2px solid var(--accent)}
+.mood button{font-size:28px;padding:6px;flex:1;background:var(--bg);display:flex;justify-content:center;align-items:center;opacity:.55;transition:opacity .2s,transform .2s}
+.mood button.on{opacity:1;outline:2px solid var(--accent);transform:scale(1.06)}
+.mood:not(:has(.on)) button{opacity:1}
+.moodimg{display:block}
+textarea.note{font:inherit;width:100%;margin-top:10px;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--text);resize:vertical}
+/* 練習紀錄頁 */
+.logday{color:var(--muted);font-size:13px;margin:18px 4px 4px}
+.logitem{display:block}
+.logitem .lh{display:flex;align-items:center;gap:10px}
+.logitem .ld{width:10px;height:10px;border-radius:50%;flex:none}
+.logitem .lm{margin-left:auto}
+.logitem .ledit{margin-top:10px}

@@ -13,6 +13,7 @@ const isDark=()=>document.documentElement.dataset.theme==='dark';
 const LOG=()=>store.get('log',[]);
 function addLog(type,name,sec,extra={}){const l=LOG();l.push({t:Date.now(),type,name,sec,...extra});store.set('log',l);return l.length-1}
 function setLogMood(i,mood){const l=LOG();if(l[i]){l[i].mood=mood;store.set('log',l)}}
+function setLogNote(i,note){const l=LOG();if(l[i]){l[i].note=note;store.set('log',l)}}
 
 // ---- 平台層（之後包成 App 時換成 Capacitor 外掛）----
 const P={
@@ -51,12 +52,29 @@ $('#pbtn').onclick=()=>{if(!play.paused){play.paused=true;clearTimeout(play.time
 $('#sbtn').onclick=()=>play.end();
 function fmt(s){return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
 
-// ---- 完成畫面（含心情；表情暫用系統 emoji，之後換 Microsoft Fluent Emoji）----
-const MOODS=['😣','😕','😐','🙂','😄'];
+// ---- 心情表情（Microsoft Fluent Emoji 3D，MIT 授權；載入失敗時退回系統 emoji）----
+const FLUENT='https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets/';
+const MOODS=[
+ ['😩','很累','Weary%20face/3D/weary_face_3d.png'],
+ ['😕','不太好','Confused%20face/3D/confused_face_3d.png'],
+ ['😐','普通','Neutral%20face/3D/neutral_face_3d.png'],
+ ['🙂','不錯','Slightly%20smiling%20face/3D/slightly_smiling_face_3d.png'],
+ ['😊','很好','Smiling%20face%20with%20smiling%20eyes/3D/smiling_face_with_smiling_eyes_3d.png']];
+const moodImg=(n,size=36)=>{const m=MOODS[n-1];return m?`<img class="moodimg" src="${FLUENT+m[2]}" alt="${m[1]}" width="${size}" height="${size}" onerror="this.replaceWith(document.createTextNode('${m[0]}'))">`:''};
+// 心情選擇列：回傳 HTML；bindMood(根元素, 紀錄index) 綁定點擊
+const moodRow=cur=>`<div class="mood">${MOODS.map((m,i)=>`<button data-m="${i+1}" class="${cur===i+1?'on':''}" aria-label="${m[1]}">${moodImg(i+1)}</button>`).join('')}</div>`;
+function bindMood(root,logIdx,after){root.querySelectorAll('.mood button').forEach(b=>b.onclick=()=>{setLogMood(logIdx,+b.dataset.m);root.querySelectorAll('.mood button').forEach(x=>x.classList.toggle('on',x===b));after&&after()})}
+
+// ---- 完成畫面 ----
+// 呼吸的紀錄另外可以填文字備註（docs/breathing.md 第 6 節）
+const NOTE_TYPES=['breath'];
 function doneScreen(name,sec,extra,logIdx,again){
+ const e=LOG()[logIdx]||{},note=NOTE_TYPES.includes(e.type);
  $('#view').innerHTML=`<h1>完成 🎉</h1><div class="card"><div>${name}<small>${fmt(sec)}・${extra}</small></div></div>
- <div class="card" style="display:block">現在感覺如何？<small>可以跳過，之後在紀錄裡補選</small><div class="mood" style="margin-top:10px">${MOODS.map((m,i)=>`<button data-m="${i+1}">${m}</button>`).join('')}</div></div>
+ <div class="card" style="display:block">現在感覺如何？<small>可以跳過，之後在紀錄裡補選</small><div style="margin-top:10px">${moodRow(e.mood)}</div>
+ ${note?'<textarea id="dnote" class="note" rows="2" placeholder="想記下什麼嗎？（可不填）"></textarea>':''}</div>
  <div class="row">${again?'<button id="again">再來一次</button>':''}<button class="pri" id="home">回到首頁</button></div>`;
- $('#view').querySelectorAll('.mood button').forEach(b=>b.onclick=()=>{setLogMood(logIdx,+b.dataset.m);$('#view').querySelectorAll('.mood button').forEach(x=>x.classList.toggle('on',x===b))});
+ bindMood($('#view'),logIdx);
+ if(note)$('#dnote').oninput=ev=>setLogNote(logIdx,ev.target.value.trim());
  $('#home').onclick=render;if(again)$('#again').onclick=again;
 }
