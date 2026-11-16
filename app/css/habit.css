@@ -10,6 +10,8 @@
 .hbchk.on{background:var(--hc)}
 .hbchk:active{transform:scale(.9)}
 .hbchk:disabled{cursor:default;opacity:.9}
+.hbgo{padding:6px 10px;font-size:13px;background:var(--bg);color:var(--muted);flex:none}
+.hbform select{font:inherit;padding:8px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--text);width:auto;max-width:65%}
 .hbcnt{display:flex;align-items:center;gap:6px;flex:none}
 .hbcnt button{width:34px;height:34px;padding:0;border-radius:50%;background:var(--bg);font-size:18px}
 .hbcnt b{min-width:44px;text-align:center}
