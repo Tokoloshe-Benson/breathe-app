@@ -66,14 +66,16 @@ input.ex-name{width:100%}
 #exstage.rest .trk{stroke:rgba(113,43,19,.12)}
 #exstage.rest .bar{stroke:#E8825E}
 .ex-mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
-#exNum{font-size:clamp(64px,20vw,104px);font-weight:600;line-height:1;background:none;padding:0 10px;font-variant-numeric:tabular-nums}
-#exNum:disabled{cursor:default;opacity:1}
-#exUnit{font-size:16px;opacity:.85;margin-top:6px;text-align:center}
+#exNum{font-size:clamp(64px,20vw,104px);font-weight:600;line-height:1;font-variant-numeric:tabular-nums}
+#exUnit{font-size:16px;opacity:.85;margin-top:6px;white-space:nowrap}
+#exstage #exReps{font-size:24px;font-weight:600;padding:6px 20px;border-radius:24px;background:rgba(255,255,255,.2);border:1.5px dashed rgba(255,255,255,.7)}
+#exstage #exReps.on{border-style:solid}
+#exstage.dark #exReps{background:rgba(240,153,123,.12);border-color:rgba(240,153,123,.6);color:#F0997B}
 #exAdj{display:none;align-items:center;gap:14px}
 #exAdj.show{display:flex}
 #exAdj button{width:52px;height:52px;border-radius:50%;font-size:26px;padding:0;background:rgba(255,255,255,.22)}
 #exstage.rest #exAdj button{background:rgba(113,43,19,.1)}
-#exAdj span{font-size:13px;opacity:.85}
+#exAdj span{font-size:13px;opacity:.85;white-space:nowrap}
 #exSet{font-size:16px;opacity:.9;min-height:1.4em}
 .ex-main{min-height:62px;display:flex;align-items:center}
 #exstage #exDone{font-size:22px;font-weight:600;padding:16px 60px;border-radius:40px;background:#fff;color:#B9502C}

@@ -238,9 +238,9 @@ const C=2*Math.PI*54;
 const X={};
 const STAGE=`<div id="exstage">
 <div class="ex-top"><span id="exProg"></span><button id="exEnd">結束</button></div>
-<div id="exPhase"></div><div id="exName"></div>
+<div id="exPhase"></div><div id="exName"></div><button id="exReps"></button>
 <div id="exRing"><svg viewBox="0 0 120 120"><circle class="trk" cx="60" cy="60" r="54"/><circle class="bar" id="exBar" cx="60" cy="60" r="54" stroke-dasharray="${C}"/></svg>
-<div class="ex-mid"><button id="exNum"></button><div id="exUnit"></div></div></div>
+<div class="ex-mid"><div id="exNum"></div><div id="exUnit"></div></div></div>
 <div id="exAdj"><button data-d="-1" aria-label="減少">−</button><span>實際次數</span><button data-d="1" aria-label="增加">＋</button></div>
 <div id="exSet"></div>
 <div class="ex-main"><button id="exDone">完成</button><button id="exMore">＋10 秒</button></div>
@@ -285,7 +285,7 @@ function startEx(r){
 }
 function run(){clearTimeout(play.timer);if(!play.paused)play.timer=setTimeout(tick,1000)}
 function enter(i){
- X.i=i;X.emomRest=false;X.adj=false;const s=cur();X.left=s.k==='reps'?null:s.sec;paint();
+ X.i=i;X.emomRest=false;X.adj=false;X.stepT=0;const s=cur();X.left=s.k==='reps'?null:s.sec;paint();
  if(s.k==='rest'){P.beep(440,.3);const nw=nextWork(i);speak(restToks(s.sec,nw),`休息 ${s.sec} 秒`+(nw?`，下一個，${desc(nw)}`:''))}
  else{P.beep(880,.3);speak(toks(s),s.named?desc(s):'運動')}
 }
@@ -293,7 +293,7 @@ function next(){if(X.i+1>=X.steps.length)return finish(true);enter(X.i+1);run()}
 function tick(){
  if(play.paused)return;const s=cur();
  if(!s){X.left--;if(X.left<=0){enter(0);return run()}if(X.left<=3)P.beep(660,.12);paint();return run()}
- X.elapsed++;
+ X.elapsed++;X.stepT++;
  if(s.k==='reps'){paint();return run()}
  X.left--;
  if(X.left<=0){if(isWork(s))X.res[X.i].done=true;return next()}
@@ -310,10 +310,13 @@ function paint(){
  $('#exPhase').textContent=!s?'準備開始':rest?'休息':'運動中';
  $('#exName').textContent=!s?desc(nw):s.k==='rest'?'休息':X.emomRest?s.name+'　完成':s.name;
  let n,unit,frac=1;const r=s&&X.res[X.i],canAdj=s&&(s.k==='reps'||(s.k==='emom'&&!X.emomRest));
+ // 圓圈裡只放秒數；次數放在動作名稱下方（點一下可改實際次數）
  if(!s){n=X.left;unit='秒';frac=X.left/Math.max(1,+X.r.prep||1)}
- else if(canAdj){n=r.actual;unit=(r.actual!==s.n?`下・目標 ${s.n}`:'下')+(s.k==='emom'?`・剩 ${X.left} 秒`:'')+(X.adj?'':'（點數字可改）');if(s.k==='emom')frac=X.left/s.sec}
+ else if(s.k==='reps'){n=X.stepT;unit='秒・已進行'}
  else{n=X.left;unit='秒';frac=X.left/s.sec}
- $('#exNum').textContent=n;$('#exUnit').textContent=unit;$('#exNum').disabled=!canAdj;
+ $('#exNum').textContent=n;$('#exUnit').textContent=unit;
+ const rb=$('#exReps');rb.style.display=canAdj?'':'none';
+ if(canAdj){rb.textContent=`${r.actual} 下`+(r.actual!==s.n?`（目標 ${s.n}）`:'');rb.classList.toggle('on',!!X.adj);rb.setAttribute('aria-label',`實際 ${r.actual} 下，點一下修改`)}
  $('#exBar').style.strokeDashoffset=C*(1-Math.max(0,Math.min(1,frac)));
  $('#exAdj').classList.toggle('show',!!(canAdj&&X.adj));
  $('#exSet').textContent=isWork(s)?`第 ${s.set}／${s.sets} 組`+(s.kg!==''&&s.kg!=null?`・${s.kg} kg`:'')+(+X.r.loops>1?`・第 ${s.loop}／${X.r.loops} 輪`:''):'';
@@ -326,7 +329,7 @@ function bindStage(){
  $('#exPause').onclick=()=>{play.paused=!play.paused;if(play.paused){clearTimeout(play.timer);hush()}paint();run()};
  $('#exDone').onclick=()=>{const s=cur();X.res[X.i].done=true;X.res[X.i].skipped=false;
   if(s.k==='emom'&&X.left>1){X.emomRest=true;X.adj=false;P.beep(440,.3);const nw=nextWork(X.i);speak(restToks(null,nw),'休息'+(nw?`，下一個，${desc(nw)}`:''));paint()}else{next()}};
- $('#exNum').onclick=()=>{if($('#exNum').disabled)return;X.adj=!X.adj;paint()};
+ $('#exReps').onclick=()=>{X.adj=!X.adj;paint()};
  $('#exAdj').onclick=e=>{const b=e.target.closest('button'),s=cur();if(!b||!s||s.k==='time'||s.k==='rest'||X.emomRest)return;const r=X.res[X.i];r.actual=Math.max(0,r.actual+ +b.dataset.d);paint()};
  $('#exMore').onclick=()=>{X.left+=10;paint()};
  $('#exSkip').onclick=()=>{const s=cur();if(!s){enter(0);return run()}if(isWork(s)&&!X.res[X.i].done)X.res[X.i].skipped=true;next()};
