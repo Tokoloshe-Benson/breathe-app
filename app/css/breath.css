@@ -48,3 +48,10 @@
 .bdanger{color:#C0392B;background:none}
 body[data-tab="breath"] h1 button{font-size:15px;font-weight:400;padding:8px 14px}
 body[data-tab="breath"] h1 .pri{font-size:20px;padding:4px 14px}
+/* 睡前模式：變暗時幾乎全黑；結束後只留「晚安」 */
+#play.breath.bsleep.bdim #bstage{opacity:.1}
+#play.breath.bsleep.bdim #pinfo,#play.breath.bsleep.bdim #ptime,#play.breath.bsleep.bdim .row{opacity:0}
+#play.breath.bnight{background:#05040C!important}
+#play.breath.bnight #bstage,#play.breath.bnight #ptime,#play.breath.bnight .row{opacity:0;pointer-events:none}
+#play.breath.bnight #pinfo{opacity:.35;font-size:20px;letter-spacing:.3em}
+#view input[type=range]{accent-color:var(--accent)}

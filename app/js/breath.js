@@ -21,8 +21,14 @@ const B={
  dur(id){const d=store.get('breath.dur',{})[id];if(d)return d;const old=store.get('bmins',{})[id];return{mode:'time',mins:old||3,count:10}},
  setDur(id,d){const all=store.get('breath.dur',{});all[id]=d;store.set('breath.dur',all)},
  cue:()=>store.get('breath.cue','both'),
- counting:()=>store.get('breath.count',false)
+ counting:()=>store.get('breath.count',false),
+ amb:()=>store.get('breath.amb','none'),
+ ambVol:()=>store.get('breath.ambVol',50),
+ sleep:()=>store.get('breath.sleep',false)
 };
+//   breath.amb     背景聲音 'none'|'rain'|'ocean'|'stream'|'noise'；breath.ambVol 音量 5–100
+//   breath.sleep   睡前模式 true|false
+const BAMB=[['none','無'],['rain','雨聲'],['ocean','海浪'],['stream','溪流'],['noise','柔和白噪音']];
 const bEsc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const bSec=s=>s<60?s+'':Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
 const bRhythm=b=>b.steps.map(([k,s])=>STEP[k][0]+' '+bSec(s)).join('・');
@@ -68,6 +74,11 @@ function bPrepare(id){
    <div class="bseg">${[['both','語音＋音效'],['voice','只開語音'],['sound','只開音效']].map(([k,t])=>`<button data-cue="${k}" class="${B.cue()===k?'on':''}">${t}</button>`).join('')}</div>
    <label class="row"><input type="checkbox" id="bcnt" style="width:auto" ${B.counting()?'checked':''}> 語音數秒（例如「吸氣…二…三…四」）</label>
   </div>
+  <div class="card" style="display:block"><small>背景聲音（點一下可試聽）</small>
+   <div class="row bchips">${BAMB.map(([k,t])=>`<button data-amb="${k}" class="${B.amb()===k?'on':''}">${t}</button>`).join('')}</div>
+   ${B.amb()!=='none'?`<label class="row">音量 <input id="bvol" type="range" min="5" max="100" value="${B.ambVol()}" style="flex:1;width:auto"></label>`:''}
+  </div>
+  <label class="card"><div>睡前模式<small>最後 1 分鐘（次數模式為最後 2 個循環）語音停止、聲音慢慢淡出；不響鐘聲，畫面全暗</small></div><input type="checkbox" id="bsleep" style="width:auto" ${B.sleep()?'checked':''}></label>
   <div class="row"><button class="pri" id="bstart" style="flex:1">開始</button></div>
   <div class="row">${b.builtin?'<button id="bcopy">複製一份來修改</button>':'<button id="bedit">編輯這個呼吸法</button>'}</div>`;
   $('#bback').onclick=rBreath;
@@ -75,9 +86,13 @@ function bPrepare(id){
   $('#view').querySelectorAll('[data-min]').forEach(x=>x.onclick=()=>{d.mins=+x.dataset.min;draw()});
   $('#view').querySelectorAll('[data-cue]').forEach(x=>x.onclick=()=>{store.set('breath.cue',x.dataset.cue);draw()});
   $('#bcnt').onchange=e=>store.set('breath.count',e.target.checked);
+  $('#bsleep').onchange=e=>store.set('breath.sleep',e.target.checked);
+  $('#view').querySelectorAll('[data-amb]').forEach(x=>x.onclick=()=>{store.set('breath.amb',x.dataset.amb);bAmb.preview(x.dataset.amb);draw()});
+  const vi=$('#bvol');if(vi)vi.oninput=()=>{store.set('breath.ambVol',+vi.value);bAmb.to(1,.2)};
   const mi=$('#bmins');if(mi)mi.onchange=()=>{d.mins=Math.min(120,Math.max(1,Math.round(+mi.value)||1));draw()};
   const ci=$('#bcount');if(ci)ci.onchange=()=>{d.count=Math.min(200,Math.max(1,Math.round(+ci.value)||1))};
-  $('#bstart').onclick=()=>{if(ci)ci.onchange();B.setDur(id,d);startBreath(b,d)};
+  $('#bstart').onclick=()=>{if(ci)ci.onchange();B.setDur(id,d);clearTimeout(bAmb.pt);startBreath(b,d)};
+  $('#bback').addEventListener('click',()=>bAmb.stop(.5));
   if(b.builtin)$('#bcopy').onclick=()=>bEdit(null,b);else $('#bedit').onclick=()=>bEdit(id);
  };draw();
 }
@@ -121,16 +136,16 @@ function bEdit(id,from){
 }
 
 // ---------- 聲音：柔和氣音、數秒、結束音 ----------
-const bSfx={src:[],nums:{},
+const bSfx={src:[],nums:{},vol:1,
  noise(){if(bSfx.nb)return bSfx.nb;const ac=P.ctx(),n=ac.sampleRate*2,buf=ac.createBuffer(1,n,ac.sampleRate),d=buf.getChannelData(0);let last=0;
   for(let i=0;i<n;i++){const w=Math.random()*2-1;last=(last+.02*w)/1.02;d[i]=last*3.5}return bSfx.nb=buf},
  // 吸氣：氣音由暗轉亮、漸強；吐氣：由亮轉暗、漸弱
- breath(kind,sec){if(!S.sound||B.cue()==='voice')return;try{const ac=P.ctx(),t=ac.currentTime,len=Math.min(sec,4.5);
+ breath(kind,sec){if(!S.sound||B.cue()==='voice')return;if(bSfx.vol<.03)return;try{const ac=P.ctx(),t=ac.currentTime,len=Math.min(sec,4.5);
   const s=ac.createBufferSource();s.buffer=bSfx.noise();s.loop=true;
   const f=ac.createBiquadFilter();f.type='bandpass';f.Q.value=.8;
   const g=ac.createGain();g.gain.setValueAtTime(.0001,t);
-  if(kind==='in'){f.frequency.setValueAtTime(500,t);f.frequency.exponentialRampToValueAtTime(1400,t+len);g.gain.exponentialRampToValueAtTime(.22,t+len*.6);g.gain.exponentialRampToValueAtTime(.0001,t+len)}
-  else{f.frequency.setValueAtTime(1200,t);f.frequency.exponentialRampToValueAtTime(380,t+len);g.gain.exponentialRampToValueAtTime(.22,t+len*.2);g.gain.exponentialRampToValueAtTime(.0001,t+len)}
+  if(kind==='in'){f.frequency.setValueAtTime(500,t);f.frequency.exponentialRampToValueAtTime(1400,t+len);g.gain.exponentialRampToValueAtTime(Math.max(.0002,.22*bSfx.vol),t+len*.6);g.gain.exponentialRampToValueAtTime(.0001,t+len)}
+  else{f.frequency.setValueAtTime(1200,t);f.frequency.exponentialRampToValueAtTime(380,t+len);g.gain.exponentialRampToValueAtTime(Math.max(.0002,.22*bSfx.vol),t+len*.2);g.gain.exponentialRampToValueAtTime(.0001,t+len)}
   s.connect(f).connect(g).connect(ac.destination);s.start(t);s.stop(t+len+.05);bSfx.src.push(s);s.onended=()=>bSfx.src=bSfx.src.filter(x=>x!==s)}catch(e){}},
  // 結束：一次柔和的鐘聲（只響一次）
  bell(){if(!S.sound)return;try{const ac=P.ctx(),t=ac.currentTime;[[528,.16],[792,.06],[1056,.03]].forEach(([fr,v])=>{const o=ac.createOscillator(),g=ac.createGain();o.type='sine';o.frequency.value=fr;
@@ -141,18 +156,61 @@ const bSfx={src:[],nums:{},
 };
 const bSay=t=>{if(B.cue()!=='sound')P.say(t)};
 
+// ---------- 背景聲音（即時合成，不需要音檔、可離線）----------
+const bAmb={bufs:{},cur:null,master:null,level:1,
+ buf(kind){if(bAmb.bufs[kind])return bAmb.bufs[kind];const ac=P.ctx(),n=ac.sampleRate*8,b=ac.createBuffer(1,n,ac.sampleRate),d=b.getChannelData(0);
+  let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0,last=0;
+  for(let i=0;i<n;i++){const w=Math.random()*2-1;
+   if(kind==='pink'){b0=.99886*b0+w*.0555179;b1=.99332*b1+w*.0750759;b2=.969*b2+w*.153852;b3=.8665*b3+w*.3104856;b4=.55*b4+w*.5329522;b5=-.7616*b5-w*.016898;d[i]=(b0+b1+b2+b3+b4+b5+b6+w*.5362)*.11;b6=w*.115926}
+   else{last=(last+.02*w)/1.02;d[i]=last*3.5}}
+  return bAmb.bufs[kind]=b},
+ build(kind,out){const ac=P.ctx(),N=[],T=[],add=n=>(N.push(n),n);
+  const filt=(type,f,q=.7)=>{const x=add(ac.createBiquadFilter());x.type=type;x.frequency.value=f;x.Q.value=q;return x};
+  const gain=v=>{const g=add(ac.createGain());g.gain.value=v;return g};
+  const noise=k=>{const s=add(ac.createBufferSource());s.buffer=bAmb.buf(k);s.loop=true;s.start(0,Math.random()*7);return s};
+  const lfo=(hz,depth,param)=>{const o=add(ac.createOscillator());o.frequency.value=hz;o.connect(gain(depth)).connect(param);o.start()};
+  if(kind==='rain'){
+   noise('pink').connect(filt('highpass',500)).connect(filt('lowpass',7000)).connect(gain(.5)).connect(out);
+   noise('brown').connect(filt('lowpass',400)).connect(gain(.35)).connect(out);
+   const drop=()=>{const t=ac.currentTime,s=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain();s.buffer=bAmb.buf('pink');
+    f.type='bandpass';f.frequency.value=1500+Math.random()*3500;f.Q.value=4;g.gain.setValueAtTime(.05+Math.random()*.12,t);g.gain.exponentialRampToValueAtTime(.0001,t+.04+Math.random()*.05);
+    s.connect(f).connect(g).connect(out);s.start(t,Math.random()*7,.12)};
+   T.push(setInterval(()=>{for(let i=0;i<3;i++)if(Math.random()<.6)drop()},60))}
+  else if(kind==='ocean'){
+   const f=filt('lowpass',500),g=gain(.35);noise('brown').connect(f);noise('pink').connect(gain(.25)).connect(f);f.connect(g).connect(out);
+   lfo(.09,.28,g.gain);lfo(.09,350,f.frequency);lfo(.037,.1,g.gain)}
+  else if(kind==='stream'){
+   const src=noise('pink');[[700,.31],[1400,.53],[2600,.83],[4200,1.3]].forEach(([fr,hz])=>{const f=filt('bandpass',fr,1.2),g=gain(.35);src.connect(f).connect(g).connect(out);lfo(hz,.25,g.gain);lfo(hz*.7,fr*.25,f.frequency)})}
+  else if(kind==='noise'){noise('brown').connect(filt('lowpass',900)).connect(gain(.6)).connect(out)}
+  return{N,T}},
+ start(kind,fade=3){bAmb.stop(.3);if(kind==='none'||!S.sound)return;try{const ac=P.ctx(),m=ac.createGain();m.gain.setValueAtTime(.0001,ac.currentTime);m.connect(ac.destination);
+  bAmb.master=m;bAmb.cur=bAmb.build(kind,m);bAmb.to(bAmb.level,fade)}catch(e){}},
+ // x = 淡出倍率（睡前模式用），實際音量 = x × 使用者音量
+ to(x,sec){const m=bAmb.master;if(!m)return;try{const ac=P.ctx(),t=ac.currentTime,v=Math.max(.0001,x*B.ambVol()/100*.6);
+  m.gain.cancelScheduledValues(t);m.gain.setValueAtTime(Math.max(.0001,m.gain.value),t);m.gain.linearRampToValueAtTime(v,t+sec)}catch(e){}},
+ stop(sec=3){const c=bAmb.cur,m=bAmb.master;bAmb.cur=bAmb.master=null;if(!c)return;c.T.forEach(clearInterval);
+  try{const t=P.ctx().currentTime;m.gain.cancelScheduledValues(t);m.gain.setValueAtTime(Math.max(.0001,m.gain.value),t);m.gain.linearRampToValueAtTime(.0001,t+sec)}catch(e){}
+  setTimeout(()=>{c.N.forEach(n=>{try{n.stop&&n.stop()}catch(e){}try{n.disconnect()}catch(e){}});try{m.disconnect()}catch(e){}},sec*1000+150)},
+ preview(kind){clearTimeout(bAmb.pt);try{P.ctx().resume()}catch(e){}bAmb.level=1;bAmb.start(kind,.8);if(kind!=='none')bAmb.pt=setTimeout(()=>bAmb.stop(1.5),4000)}
+};
+
 // ---------- 練習 ----------
 // 進行中畫面自動變暗，點一下恢復
 const bDim={t:null,arm(){clearTimeout(bDim.t);$('#play').classList.remove('bdim');bDim.t=setTimeout(()=>{if(!play.paused&&$('#play').classList.contains('breath'))$('#play').classList.add('bdim')},8000)},
  off(){clearTimeout(bDim.t);$('#play').classList.remove('bdim')}};
 $('#play').addEventListener('click',e=>{if($('#play').classList.contains('breath')&&!e.target.closest('button'))bDim.arm()});
-$('#pbtn').addEventListener('click',()=>{if(!$('#play').classList.contains('breath'))return;if(play.paused){bSfx.stop();bDim.off()}else bDim.arm()});
+$('#pbtn').addEventListener('click',()=>{if(!$('#play').classList.contains('breath'))return;if(play.paused){bSfx.stop();bAmb.to(0,1);bDim.off()}else{bAmb.to(bAmb.level,1.5);bDim.arm()}});
 
 function startBreath(b,d){
  store.set('breath.last',b.id);bSfx.loadNums();
  showPlay(isDark()?'#110F24':'#2E2966','#EEEDFE');$('#play').classList.add('breath');
  const total=d.mode==='time'?d.mins*60:Infinity,goal=d.mode==='count'?d.count:Infinity;
  let done=0,cycles=0;const st=$('#bstage');
+ // 睡前模式：最後 1 分鐘（次數模式為最後 2 個循環）語音停止，氣音與背景聲音線性淡出到 0
+ const sleep=B.sleep(),cycLen=b.steps.reduce((a,s)=>a+s[1],0),endAt=d.mode==='time'?total:goal*cycLen,
+  fadeFrom=Math.max(0,d.mode==='time'?endAt-60:endAt-2*cycLen),
+  lvl=()=>!sleep||done<fadeFrom?1:Math.max(0,(endAt-done)/Math.max(1,endAt-fadeFrom)),quiet=()=>sleep&&done>=fadeFrom;
+ $('#play').classList.toggle('bsleep',sleep);bSfx.vol=1;bAmb.level=1;clearTimeout(bAmb.pt);bAmb.start(B.amb(),4);
  const size=(s,dur)=>{st.style.setProperty('--s',s);st.style.setProperty('--d',dur+'s')};
  const info=()=>$('#ptime').textContent=d.mode==='time'?'剩餘 '+fmt(Math.max(0,total-done)):`第 ${Math.min(cycles+1,goal)} / ${goal} 次`;
  $('#pinfo').textContent=b.name;
@@ -160,14 +218,21 @@ function startBreath(b,d){
    if(i>=b.steps.length){cycles++;if(done>=total||cycles>=goal)return finish();return cyc()}
    const[k,sec]=b.steps[i];st.classList.toggle('hold',k==='hold');st.dataset.k=k;
    if(k==='in')size(.88,sec);else if(k==='out')size(.42,sec);
-   $('#bstep').textContent=STEP[k];bSay(STEP[k]);if(k!=='hold')bSfx.breath(k,sec);P.buzz();
+   $('#bstep').textContent=STEP[k];bSfx.vol=lvl();if(!quiet())bSay(STEP[k]);if(k!=='hold')bSfx.breath(k,sec);P.buzz();
    let left=sec;const tick=()=>{if(play.paused)return play.timer=setTimeout(tick,300);
      if(left===0){i++;return step()}
-     const n=sec-left+1;if(n>=2&&n<=10&&B.counting())bSfx.num(n);
+     if(sleep){bAmb.level=lvl();bAmb.to(bAmb.level,1)}
+     const n=sec-left+1;if(n>=2&&n<=10&&B.counting()&&!quiet())bSfx.num(n);
      $('#bnum').textContent=left;info();
      left--;done++;play.timer=setTimeout(tick,1000)};tick()};step()};
- const end=()=>{bSfx.stop();bDim.off();const idx=addLog('breath',b.name,done,{cycles,breathId:b.id});hidePlay();st.classList.remove('hold');doneScreen(b.name,done,cycles+' 個循環',idx,()=>startBreath(b,d))};
- const finish=()=>{bSfx.bell();bSay('結束');end()};
+ const log=()=>addLog('breath',b.name,done,{cycles,breathId:b.id});
+ const show=idx=>{hidePlay();st.classList.remove('hold');doneScreen(b.name,done,cycles+' 個循環',idx,()=>startBreath(b,d))};
+ const end=()=>{bSfx.stop();bAmb.stop(3);bDim.off();show(log())};
+ // 睡前模式結束：不響鐘聲、不說「結束」，畫面全暗只留「晚安」，放開螢幕常亮讓手機自然休眠；點一下才進完成畫面
+ const night=()=>{bSfx.stop();bAmb.stop(2);bDim.off();clearTimeout(play.timer);const idx=log();P.wake(false);
+  const p=$('#play');p.classList.add('bnight');$('#pinfo').textContent='晚安';$('#ptime').textContent='';
+  const wake=e=>{e.stopPropagation();p.removeEventListener('click',wake,true);p.classList.remove('bnight');show(idx)};p.addEventListener('click',wake,true)};
+ const finish=()=>{if(sleep)return night();bSfx.bell();bSay('結束');end()};
  play.restart=()=>{st.classList.remove('hold');size(.42,1.2);bDim.arm();countdown(3,cyc,true)};
  play.end=end;
  st.classList.remove('hold');delete st.dataset.k;size(.42,0);info();bDim.arm();
