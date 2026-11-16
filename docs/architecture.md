@@ -20,6 +20,11 @@
   - Android 在 Windows 上就能打包。
   - iPhone 需要 Mac 或雲端打包服務，加上 Apple 開發者帳號（每年 99 美元）。
 
+### 上線網址
+- **https://tokoloshe-benson.github.io/breathe-app/**（GitHub Pages）
+- 原始碼：https://github.com/Tokoloshe-Benson/breathe-app（公開）
+- 更新方式：`git push` 到 `main` 後，GitHub Actions（`.github/workflows/pages.yml`）會自動把 `app/` 發布出去，約 1 分鐘。推送由架構對話統一處理，各分頁對話只 commit、不推送。
+
 ## 2. 資料
 
 - **只存在手機上**（localStorage），不做帳號，也不做雲端同步。
@@ -111,5 +116,4 @@ app/
 - 運動完成後的備註
 - 熱度圖、徽章、休息卡、統計圖表
 - 每日提醒（App 版）
-- 架上網路，讓手機可以直接連
 - 用 Capacitor 包成 iPhone 和 Android App
