@@ -174,7 +174,7 @@ const bAmb={files:{},cur:null,master:null,level:1,
    s.buffer=buf;s.loop=true;s.loopStart=0;s.loopEnd=Math.min(buf.duration,B_AMB_LEN[kind]||buf.duration);s.connect(m);s.start(0,Math.random()*s.loopEnd*.8);
    bAmb.master=m;bAmb.cur={N:[s],T:[]};bAmb.to(bAmb.level,fade)}).catch(()=>{})},
  // x = 淡出倍率（睡前模式用），實際音量 = x × 使用者音量
- to(x,sec){const m=bAmb.master;if(!m)return;try{const ac=P.ctx(),t=ac.currentTime,v=Math.max(.0001,x*B.ambVol()/100*.6);
+ to(x,sec){const m=bAmb.master;if(!m)return;try{const ac=P.ctx(),t=ac.currentTime,v=Math.max(.0001,x*B.ambVol()/100*1.2);
   m.gain.cancelScheduledValues(t);m.gain.setValueAtTime(Math.max(.0001,m.gain.value),t);m.gain.linearRampToValueAtTime(v,t+sec)}catch(e){}},
  stop(sec=3){bAmb.tok=null;const c=bAmb.cur,m=bAmb.master;bAmb.cur=bAmb.master=null;if(!c)return;c.T.forEach(clearInterval);
   try{const t=P.ctx().currentTime;m.gain.cancelScheduledValues(t);m.gain.setValueAtTime(Math.max(.0001,m.gain.value),t);m.gain.linearRampToValueAtTime(.0001,t+sec)}catch(e){}
