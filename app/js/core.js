@@ -21,9 +21,11 @@ const P={
  VK:{'準備':'prep','開始':'start','吸氣':'in','停住':'hold','吐氣':'out','結束':'end'},buf:{},
  ctx(){return P.ac=P.ac||new(window.AudioContext||window.webkitAudioContext)()},
  load(){const v=S.voiceType||'f';Object.values(P.VK).forEach(k=>{const id=v+'/'+k;if(P.buf[id])return;fetch('audio/'+id+'.mp3').then(r=>r.arrayBuffer()).then(a=>P.ctx().decodeAudioData(a)).then(b=>P.buf[id]=b).catch(()=>{})})},
- say(t){if(!S.voice)return;const b=P.buf[(S.voiceType||'f')+'/'+P.VK[t]];
-  if(b){try{const ac=P.ctx(),s=ac.createBufferSource();s.buffer=b;s.connect(ac.destination);s.start()}catch(e){}return}
-  if(!window.speechSynthesis)return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='zh-TW';u.rate=.85;speechSynthesis.speak(u)},
+ // 語音音量：P.voiceGain（預設 1；各分頁練習開始時設定、結束時設回 1）
+ voiceGain:1,
+ say(t){if(!S.voice)return;const b=P.buf[(S.voiceType||'f')+'/'+P.VK[t]],vg=P.voiceGain??1;
+  if(b){try{const ac=P.ctx(),s=ac.createBufferSource(),g=ac.createGain();s.buffer=b;g.gain.value=vg;s.connect(g).connect(ac.destination);s.start()}catch(e){}return}
+  if(!window.speechSynthesis)return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='zh-TW';u.rate=.85;u.volume=Math.min(1,Math.max(0,vg));speechSynthesis.speak(u)},
  beep(f=520,d=.25){if(!S.sound)return;try{P.ctx();const o=P.ac.createOscillator(),g=P.ac.createGain();o.frequency.value=f;o.type='sine';g.gain.setValueAtTime(.0001,P.ac.currentTime);g.gain.exponentialRampToValueAtTime(.2,P.ac.currentTime+.03);g.gain.exponentialRampToValueAtTime(.0001,P.ac.currentTime+d);o.connect(g).connect(P.ac.destination);o.start();o.stop(P.ac.currentTime+d)}catch(e){}},
  buzz(ms=80){if(S.vibrate&&navigator.vibrate)navigator.vibrate(ms)},
  async wake(on){try{if(on){P.lock=await navigator.wakeLock?.request('screen')}else{P.lock?.release();P.lock=null}}catch(e){}}
