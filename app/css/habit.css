@@ -41,3 +41,40 @@ body[data-tab="hb"] .pri{background:var(--accent);color:var(--card)}
 .hbchkl{justify-content:flex-start!important}
 .hbchkl input{width:auto}
 .hberr{color:#D85A30;font-size:13px;margin:0;min-height:1em}
+/* 統計頁 */
+.hbseg{justify-content:space-between}
+.hbseg>button{padding:6px 14px;background:var(--card)}
+.hbper{display:flex;align-items:center;gap:6px;margin-left:auto}
+.hbper button{padding:4px 12px;font-size:18px;background:var(--card)}
+.hbper button:disabled{opacity:.3}
+.hbtiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin:10px 0}
+.hbtile{background:var(--card);border-radius:14px;padding:12px 14px}
+.hbtile small{color:var(--muted);display:block;font-size:13px}
+.hbtile b{font-size:26px;font-weight:600;display:block;margin-top:2px}
+.hbtile i{font-style:normal;font-size:13px;font-weight:400;color:var(--muted)}
+.hbmood div{display:flex;align-items:center;gap:8px;margin-top:4px}
+.hbch{display:flex;justify-content:space-between;align-items:center}
+.hbch button{padding:4px 10px;font-size:13px;background:var(--bg)}
+.hblegend{display:flex;gap:12px;flex-wrap:wrap;margin:8px 0 4px;font-size:13px;color:var(--muted)}
+.hblegend span,.hbtip span,.hbrl span{display:inline-flex;align-items:center;gap:5px}
+.hblegend i,.hbtip i,.hbrl i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.hbsvg{width:100%;height:auto;display:block;margin-top:4px}
+.hbgrid{stroke:var(--line);stroke-width:.6}
+.hbbase{stroke:var(--muted);stroke-width:.8}
+.hbax{fill:var(--muted);font-size:10px;font-variant-numeric:tabular-nums}
+.hbax.on{fill:var(--text);font-weight:600}
+.hbhit{fill:transparent;cursor:pointer;outline:none}
+.hbhit.on,.hbhit:hover{fill:var(--text);fill-opacity:.06}
+.hbtip{font-size:13px;color:var(--muted);min-height:20px;margin-top:6px;display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center}
+.hbtip b{color:var(--text);font-weight:600}
+.hbtip span{color:var(--text)}
+.hbrate{margin-top:12px}
+.hbrl{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:15px}
+.hbrl small{color:var(--muted);white-space:nowrap}
+.hbtrack{height:6px;border-radius:3px;background:var(--bg);margin-top:6px;overflow:hidden}
+.hbtrack div{height:100%;border-radius:3px}
+.hbtable{width:100%;border-collapse:collapse;font-size:14px;margin-top:6px;font-variant-numeric:tabular-nums}
+.hbtable th{color:var(--muted);font-weight:400;text-align:right;padding:6px 4px;border-bottom:1px solid var(--line)}
+.hbtable td{text-align:right;padding:6px 4px;border-bottom:1px solid var(--line)}
+.hbtable th:first-child,.hbtable td:first-child{text-align:left}
+.hbtable+small{color:var(--muted);display:block;margin-top:6px;font-size:12px}

@@ -100,8 +100,10 @@ function rHb(){
  <div class="hbhead"><b>今天</b><button id="hbmanage">管理習慣</button></div>
  <div id="hblist">${vis.map(h=>hbRow(h,today,ctx,true)).join('')||'<p class="empty">沒有顯示中的習慣<br>到「管理習慣」新增或開啟</p>'}</div>
  <div class="card" style="display:block">${hbCal(ctx)}</div>
+ <button class="card hblink" id="hbstat"><span>統計</span><small>練習時間、習慣達成率 ›</small></button>
  <button class="card hblink" id="hblog"><span>練習紀錄</span><small>看每次練習、補選心情 ›</small></button>`;
  $('#gear').onclick=rSettings;
+ $('#hbstat').onclick=()=>hbStats();
  $('#hbmanage').onclick=hbManage;
  $('#hblog').onclick=()=>openLog(rHb);
  hbBindRows($('#hblist'),today,ctx,rHb);
@@ -211,5 +213,104 @@ function hbEdit(id){
   HB.saveHabits(HB.habits().filter(x=>x.id!==h.id));
   const m=HB.marks();Object.keys(m).forEach(k=>{delete m[k][h.id];if(!Object.keys(m[k]).length)delete m[k]});store.set('hb.marks',m);hbManage()};
  draw();
+}
+// ---------- 統計 ----------
+// 期間：本週（週一到週日）或本月，可以往前翻；包含每日練習分鐘（依類別堆疊）、習慣達成率、連續紀錄、平均心情
+const HBS={mode:'week',off:0,table:false,sel:-1};
+function hbRange(){
+ const now=new Date();let start,end,label;
+ if(HBS.mode==='week'){start=HB.addDays(HB.weekStart(now),HBS.off*7);end=HB.addDays(start,6);
+  label=HBS.off===0?'本週':HBS.off===-1?'上週':`${start.getMonth()+1}/${start.getDate()} – ${end.getMonth()+1}/${end.getDate()}`}
+ else{start=new Date(now.getFullYear(),now.getMonth()+HBS.off,1);end=new Date(start.getFullYear(),start.getMonth()+1,0);
+  label=HBS.off===0?'本月':`${start.getFullYear()} 年 ${start.getMonth()+1} 月`}
+ const days=[];for(let d=new Date(start);d<=end;d=HB.addDays(d,1))days.push(new Date(d));
+ const today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+ return{start,end,label,days,elapsed:days.filter(d=>d<=today)};
+}
+// 最長連續天數（呼吸／運動／拉伸任一種，含補卡）
+function hbLongest(ctx){
+ const keys=[...Object.keys(ctx.days),...Object.keys(ctx.marks)].map(k=>{const[y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d)});
+ if(!keys.length)return 0;let d=new Date(Math.min(...keys)),best=0,cur=0;const now=new Date();
+ while(d<=now){if(HB.typesOn(HB.key(d),ctx).size){cur++;best=Math.max(best,cur)}else cur=0;d=HB.addDays(d,1)}return best;
+}
+// 習慣在期間內的達成：每日習慣＝完成天數／已經過的天數；每週習慣＝完成天數／（每週天數 × 已經過週數）
+function hbRate(h,R,ctx){
+ const done=R.elapsed.filter(d=>HB.done(h,HB.key(d),ctx)).length;
+ const goal=h.freq==='weekly'?Math.max(1,Math.ceil((h.per||1)*R.elapsed.length/7)):R.elapsed.length;
+ return{done,goal,rate:goal?Math.min(1,done/goal):0};
+}
+function hbStats(){
+ const ctx=HB.ctx(),R=hbRange(),T=['breath','ex','st'];
+ // 每天各類別分鐘數
+ const rows=R.days.map(d=>{const k=HB.key(d),l=ctx.days[k]||[],v={};T.forEach(t=>v[t]=Math.round(l.filter(e=>e.type===t).reduce((s,e)=>s+(e.sec||0),0)/60));return{d,k,v,n:l.length,sum:T.reduce((s,t)=>s+v[t],0)}});
+ const inR=R.days.flatMap(d=>ctx.days[HB.key(d)]||[]);
+ const cnt=inR.length;
+ const active=R.elapsed.filter(d=>HB.typesOn(HB.key(d),ctx).size).length;
+ const vis=ctx.habits.filter(h=>!h.hidden),rates=vis.map(h=>({h,...hbRate(h,R,ctx)}));
+ const avg=rates.length?Math.round(rates.reduce((s,r)=>s+r.rate,0)/rates.length*100):0;
+ const moods=inR.filter(e=>e.mood),mood=moods.length?Math.round(moods.reduce((s,e)=>s+e.mood,0)/moods.length):0;
+ const tot={};T.forEach(t=>tot[t]=rows.reduce((s,r)=>s+r.v[t],0));
+ const mins=T.reduce((s,t)=>s+tot[t],0); // 跟圖例加總一致（每天各類別先四捨五入成分鐘）
+ const fut=HBS.off>=0;
+ $('#view').innerHTML=`<h1>統計<button id="hbback">返回</button></h1>
+ <div class="row hbseg">${[['week','週'],['month','月']].map(([k,t])=>`<button data-m="${k}" class="${HBS.mode===k?'pri':''}">${t}</button>`).join('')}
+  <span class="hbper"><button id="hbsp" aria-label="上一段">‹</button><b>${R.label}</b><button id="hbsn" aria-label="下一段" ${fut?'disabled':''}>›</button></span></div>
+ <div class="hbtiles">
+  <div class="hbtile"><small>練習時間</small><b>${mins}<i> 分鐘</i></b></div>
+  <div class="hbtile"><small>練習次數</small><b>${cnt}<i> 次</i></b></div>
+  <div class="hbtile"><small>有練習的天數</small><b>${active}<i> / ${R.elapsed.length} 天</i></b></div>
+  <div class="hbtile"><small>習慣平均達成率</small><b>${avg}<i> %</i></b></div>
+ </div>
+ <div class="card" style="display:block">
+  <div class="hbch"><b>每天練習分鐘</b><button id="hbtbl">${HBS.table?'看圖表':'看表格'}</button></div>
+  <div class="hblegend">${T.map(t=>`<span><i style="background:${HB.COL[t]}"></i>${HB.TYPE[t]} ${tot[t]} 分</span>`).join('')}</div>
+  ${HBS.table?hbTable(rows,T):hbChart(rows,T)}
+ </div>
+ <div class="card" style="display:block"><b>習慣達成率</b>
+  ${rates.map(r=>`<div class="hbrate"><div class="hbrl"><span><i style="background:${HB.color(r.h)}"></i>${HB.esc(r.h.name)}</span><small>${r.done} / ${r.goal} 天・${Math.round(r.rate*100)}%</small></div>
+   <div class="hbtrack"><div style="width:${r.rate*100}%;background:${HB.color(r.h)}"></div></div></div>`).join('')||'<p class="empty" style="padding:10px">還沒有習慣</p>'}
+  ${R.elapsed.length?'':'<small>這段期間還沒開始</small>'}
+ </div>
+ <div class="hbtiles">
+  <div class="hbtile"><small>目前連續</small><b>${HB.allStreak(ctx)}<i> 天</i></b></div>
+  <div class="hbtile"><small>最長連續</small><b>${hbLongest(ctx)}<i> 天</i></b></div>
+  <div class="hbtile hbmood"><small>平均心情</small>${mood?`<div>${moodImg(mood,32)}<i>${moods.length} 筆</i></div>`:'<b><i>還沒有</i></b>'}</div>
+ </div>`;
+ $('#hbback').onclick=rHb;
+ $('#view').querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{if(HBS.mode!==b.dataset.m){HBS.mode=b.dataset.m;HBS.off=0;HBS.sel=-1}hbStats()});
+ $('#hbsp').onclick=()=>{HBS.off--;HBS.sel=-1;hbStats()};
+ $('#hbsn').onclick=()=>{if(HBS.off<0){HBS.off++;HBS.sel=-1;hbStats()}};
+ $('#hbtbl').onclick=()=>{HBS.table=!HBS.table;hbStats()};
+ hbBindChart(rows,T);
+}
+// 堆疊長條圖（SVG）：每天一根，呼吸／運動／拉伸疊在一起；點或滑過長條顯示當天明細
+function hbChart(rows,T){
+ const W=340,H=170,L=26,B=20,top=8,pw=W-L-4,ph=H-B-top,n=rows.length;
+ const mx=Math.max(...rows.map(r=>r.sum),0),step=[5,10,15,20,30,60,90,120].find(s=>s*3>=mx)||Math.ceil(mx/3/60)*60,ymax=step*3;
+ const slot=pw/n,bw=Math.max(3,Math.min(26,slot-2)),y=v=>top+ph-v/ymax*ph;
+ let g='';for(let i=0;i<=3;i++){const yy=y(step*i);g+=`<line x1="${L}" x2="${W-4}" y1="${yy}" y2="${yy}" class="hbgrid"/><text x="${L-5}" y="${yy+3.5}" class="hbax" text-anchor="end">${step*i}</text>`}
+ const wk='日一二三四五六';let bars='',lab='';
+ rows.forEach((r,i)=>{const x=L+slot*i+(slot-bw)/2;let base=0;const segs=T.filter(t=>r.v[t]>0);
+  segs.forEach((t,j)=>{const y0=y(base),y1=y(base+r.v[t]),last=j===segs.length-1,h=y0-y1-(j?2:0);base+=r.v[t];if(h<=0)return;
+   const yb=y0-(j?2:0),rr=last?Math.min(4,bw/2,h):0;
+   bars+=`<path fill="${HB.COL[t]}" d="M${x},${yb}V${yb-h+rr}${rr?`Q${x},${yb-h} ${x+rr},${yb-h}H${x+bw-rr}Q${x+bw},${yb-h} ${x+bw},${yb-h+rr}`:`H${x+bw}`}V${yb}Z"/>`});
+  const showLab=n<=7||(i===0||(i+1)%5===0);
+  if(showLab)lab+=`<text x="${x+bw/2}" y="${H-5}" class="hbax${HBS.sel===i?' on':''}" text-anchor="middle">${n<=7?wk[r.d.getDay()]:r.d.getDate()}</text>`;
+  bars+=`<rect class="hbhit${HBS.sel===i?' on':''}" data-i="${i}" x="${L+slot*i}" y="${top}" width="${slot}" height="${ph}" tabindex="0" aria-label="${r.d.getMonth()+1}/${r.d.getDate()} ${r.sum} 分鐘"/>`});
+ return `<svg class="hbsvg" viewBox="0 0 ${W} ${H}" role="img" aria-label="每天練習分鐘的堆疊長條圖">${g}<line x1="${L}" x2="${W-4}" y1="${y(0)}" y2="${y(0)}" class="hbbase"/>${bars}${lab}</svg>
+ <div id="hbtip" class="hbtip">${mx?'點長條看當天明細':'這段期間還沒有練習'}</div>`;
+}
+function hbBindChart(rows,T){
+ const tip=$('#hbtip');if(!tip)return;
+ const show=i=>{const r=rows[i];if(!r)return;HBS.sel=i;
+  $('#view').querySelectorAll('.hbhit').forEach(x=>x.classList.toggle('on',+x.dataset.i===i));
+  tip.innerHTML=`<b>${r.d.getMonth()+1}/${r.d.getDate()}（${'日一二三四五六'[r.d.getDay()]}）</b> ${r.sum} 分鐘${r.sum?'：'+T.filter(t=>r.v[t]).map(t=>`<span><i style="background:${HB.COL[t]}"></i>${HB.TYPE[t]} ${r.v[t]}</span>`).join(''):''}`};
+ $('#view').querySelectorAll('.hbhit').forEach(h=>{const i=+h.dataset.i;h.onclick=()=>show(i);h.onmouseenter=()=>show(i);h.onfocus=()=>show(i)});
+ if(HBS.sel>=0)show(HBS.sel);
+}
+function hbTable(rows,T){
+ return `<table class="hbtable"><thead><tr><th>日期</th>${T.map(t=>`<th>${HB.TYPE[t]}</th>`).join('')}<th>合計</th></tr></thead><tbody>
+ ${rows.filter(r=>r.sum||r.n).map(r=>`<tr><td>${r.d.getMonth()+1}/${r.d.getDate()}（${'日一二三四五六'[r.d.getDay()]}）</td>${T.map(t=>`<td>${r.v[t]||'–'}</td>`).join('')}<td>${r.sum}</td></tr>`).join('')||`<tr><td colspan="${T.length+2}">這段期間還沒有練習</td></tr>`}
+ </tbody></table><small>單位：分鐘</small>`;
 }
 registerTab('hb',rHb);
