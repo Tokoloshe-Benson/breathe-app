@@ -24,6 +24,7 @@ const B={
  counting:()=>store.get('breath.count',false),
  amb:()=>{const a=store.get('breath.amb','none');return a==='noise'?'fire':a},
  ambVol:()=>store.get('breath.ambVol',50),
+ voiceVol:()=>store.get('breath.voiceVol',100),
  sleep:()=>store.get('breath.sleep',false)
 };
 //   breath.amb     背景聲音 'none'|'rain'|'ocean'|'stream'|'fire'（舊的 'noise' 視為 'fire'）；breath.ambVol 音量 5–100
@@ -73,6 +74,7 @@ function bPrepare(id){
   <div class="card" style="display:block"><small>聲音</small>
    <div class="bseg">${[['both','語音＋音效'],['voice','只開語音'],['sound','只開音效']].map(([k,t])=>`<button data-cue="${k}" class="${B.cue()===k?'on':''}">${t}</button>`).join('')}</div>
    <label class="row"><input type="checkbox" id="bcnt" style="width:auto" ${B.counting()?'checked':''}> 語音數秒（例如「吸氣…二…三…四」）</label>
+   <label class="row">語音音量 <input id="bvvol" type="range" min="10" max="150" value="${B.voiceVol()}" style="flex:1;width:auto"></label>
   </div>
   <div class="card" style="display:block"><small>背景聲音（點一下可試聽）</small>
    <div class="row bchips">${BAMB.map(([k,t])=>`<button data-amb="${k}" class="${B.amb()===k?'on':''}">${t}</button>`).join('')}</div>
@@ -86,6 +88,7 @@ function bPrepare(id){
   $('#view').querySelectorAll('[data-min]').forEach(x=>x.onclick=()=>{d.mins=+x.dataset.min;draw()});
   $('#view').querySelectorAll('[data-cue]').forEach(x=>x.onclick=()=>{store.set('breath.cue',x.dataset.cue);draw()});
   $('#bcnt').onchange=e=>store.set('breath.count',e.target.checked);
+  $('#bvvol').onchange=e=>{store.set('breath.voiceVol',+e.target.value);try{P.ctx().resume()}catch(x){}bVoice('吸氣')};
   $('#bsleep').onchange=e=>store.set('breath.sleep',e.target.checked);
   $('#view').querySelectorAll('[data-amb]').forEach(x=>x.onclick=()=>{store.set('breath.amb',x.dataset.amb);bAmb.preview(x.dataset.amb);draw()});
   const vi=$('#bvol');if(vi)vi.oninput=()=>{store.set('breath.ambVol',+vi.value);bAmb.to(1,.2)};
@@ -152,9 +155,12 @@ const bSfx={src:[],nums:{},vol:1,
   g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(v,t+.04);g.gain.exponentialRampToValueAtTime(.0001,t+3.2);o.connect(g).connect(ac.destination);o.start(t);o.stop(t+3.3)})}catch(e){}},
  stop(){bSfx.src.forEach(s=>{try{s.stop()}catch(e){}});bSfx.src=[]},
  loadNums(){const v=S.voiceType||'f';for(let i=2;i<=10;i++){const id=v+i;if(bSfx.nums[id])continue;fetch(`audio/b/${v}/${i}.mp3`).then(r=>r.arrayBuffer()).then(a=>P.ctx().decodeAudioData(a)).then(b=>bSfx.nums[id]=b).catch(()=>{})}},
- num(n){if(!S.voice||B.cue()==='sound')return;const b=bSfx.nums[(S.voiceType||'f')+n];if(!b)return;try{const ac=P.ctx(),s=ac.createBufferSource();s.buffer=b;s.connect(ac.destination);s.start()}catch(e){}}
+ num(n){if(!S.voice||B.cue()==='sound')return;const b=bSfx.nums[(S.voiceType||'f')+n];if(!b)return;bPlayVoice(b)}
 };
-const bSay=t=>{if(B.cue()!=='sound')P.say(t)};
+// 語音音量（breath.voiceVol，10–150%）：呼吸自己播放預錄語音並經過音量節點；沒有預錄檔才退回 P.say
+function bPlayVoice(buf){try{const ac=P.ctx(),s=ac.createBufferSource(),g=ac.createGain();g.gain.value=B.voiceVol()/100;s.buffer=buf;s.connect(g).connect(ac.destination);s.start()}catch(e){}}
+function bVoice(t){if(!S.voice)return;const b=P.buf[(S.voiceType||'f')+'/'+P.VK[t]];if(b)bPlayVoice(b);else P.say(t)}
+const bSay=t=>{if(B.cue()!=='sound')bVoice(t)};
 
 // ---------- 背景聲音（真實錄音，CC0 授權，來源見 docs/breathing.md 5.4）----------
 // 每個檔案都是頭尾已交叉淡化（4 秒）接好的循環片段，用 Web Audio 無縫循環播放；B_AMB_LEN 為各檔精確長度（秒）
@@ -192,7 +198,7 @@ function startBreath(b,d){
  const sleep=B.sleep(),cycLen=b.steps.reduce((a,s)=>a+s[1],0),endAt=d.mode==='time'?total:goal*cycLen,
   fadeFrom=Math.max(0,d.mode==='time'?endAt-60:endAt-2*cycLen),
   lvl=()=>!sleep||done<fadeFrom?1:Math.max(0,(endAt-done)/Math.max(1,endAt-fadeFrom)),quiet=()=>sleep&&done>=fadeFrom;
- $('#play').classList.toggle('bsleep',sleep);bSfx.vol=1;bAmb.level=1;clearTimeout(bAmb.pt);bAmb.start(B.amb(),4);
+ P.voiceGain=B.voiceVol()/100;$('#play').classList.toggle('bsleep',sleep);bSfx.vol=1;bAmb.level=1;clearTimeout(bAmb.pt);bAmb.start(B.amb(),4);
  const size=(s,dur)=>{st.style.setProperty('--s',s);st.style.setProperty('--d',dur+'s')};
  const info=()=>$('#ptime').textContent=d.mode==='time'?'剩餘 '+fmt(Math.max(0,total-done)):`第 ${Math.min(cycles+1,goal)} / ${goal} 次`;
  $('#pinfo').textContent=b.name;
@@ -209,9 +215,9 @@ function startBreath(b,d){
      left--;done++;play.timer=setTimeout(tick,1000)};tick()};step()};
  const log=()=>addLog('breath',b.name,done,{cycles,breathId:b.id});
  const show=idx=>{hidePlay();st.classList.remove('hold');doneScreen(b.name,done,cycles+' 個循環',idx,()=>startBreath(b,d))};
- const end=()=>{bSfx.stop();bAmb.stop(3);bDim.off();show(log())};
+ const end=()=>{bSfx.stop();P.voiceGain=1;bAmb.stop(3);bDim.off();show(log())};
  // 睡前模式結束：不響鐘聲、不說「結束」，畫面全暗只留「晚安」，放開螢幕常亮讓手機自然休眠；點一下才進完成畫面
- const night=()=>{bSfx.stop();bAmb.stop(2);bDim.off();clearTimeout(play.timer);const idx=log();P.wake(false);
+ const night=()=>{bSfx.stop();P.voiceGain=1;bAmb.stop(2);bDim.off();clearTimeout(play.timer);const idx=log();P.wake(false);
   const p=$('#play');p.classList.add('bnight');$('#pinfo').textContent='晚安';$('#ptime').textContent='';
   const wake=e=>{e.stopPropagation();p.removeEventListener('click',wake,true);p.classList.remove('bnight');show(idx)};p.addEventListener('click',wake,true)};
  const finish=()=>{if(sleep)return night();bSfx.bell();bSay('結束');end()};
