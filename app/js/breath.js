@@ -22,13 +22,13 @@ const B={
  setDur(id,d){const all=store.get('breath.dur',{});all[id]=d;store.set('breath.dur',all)},
  cue:()=>store.get('breath.cue','both'),
  counting:()=>store.get('breath.count',false),
- amb:()=>store.get('breath.amb','none'),
+ amb:()=>{const a=store.get('breath.amb','none');return a==='noise'?'fire':a},
  ambVol:()=>store.get('breath.ambVol',50),
  sleep:()=>store.get('breath.sleep',false)
 };
-//   breath.amb     背景聲音 'none'|'rain'|'ocean'|'stream'|'noise'；breath.ambVol 音量 5–100
+//   breath.amb     背景聲音 'none'|'rain'|'ocean'|'stream'|'fire'（舊的 'noise' 視為 'fire'）；breath.ambVol 音量 5–100
 //   breath.sleep   睡前模式 true|false
-const BAMB=[['none','無'],['rain','雨聲'],['ocean','海浪'],['stream','溪流'],['noise','柔和白噪音']];
+const BAMB=[['none','無'],['rain','雨聲'],['ocean','海浪'],['stream','溪流'],['fire','營火']];
 const bEsc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const bSec=s=>s<60?s+'':Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
 const bRhythm=b=>b.steps.map(([k,s])=>STEP[k][0]+' '+bSec(s)).join('・');
@@ -156,39 +156,21 @@ const bSfx={src:[],nums:{},vol:1,
 };
 const bSay=t=>{if(B.cue()!=='sound')P.say(t)};
 
-// ---------- 背景聲音（即時合成，不需要音檔、可離線）----------
-const bAmb={bufs:{},cur:null,master:null,level:1,
- buf(kind){if(bAmb.bufs[kind])return bAmb.bufs[kind];const ac=P.ctx(),n=ac.sampleRate*8,b=ac.createBuffer(1,n,ac.sampleRate),d=b.getChannelData(0);
-  let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0,last=0;
-  for(let i=0;i<n;i++){const w=Math.random()*2-1;
-   if(kind==='pink'){b0=.99886*b0+w*.0555179;b1=.99332*b1+w*.0750759;b2=.969*b2+w*.153852;b3=.8665*b3+w*.3104856;b4=.55*b4+w*.5329522;b5=-.7616*b5-w*.016898;d[i]=(b0+b1+b2+b3+b4+b5+b6+w*.5362)*.11;b6=w*.115926}
-   else{last=(last+.02*w)/1.02;d[i]=last*3.5}}
-  return bAmb.bufs[kind]=b},
- build(kind,out){const ac=P.ctx(),N=[],T=[],add=n=>(N.push(n),n);
-  const filt=(type,f,q=.7)=>{const x=add(ac.createBiquadFilter());x.type=type;x.frequency.value=f;x.Q.value=q;return x};
-  const gain=v=>{const g=add(ac.createGain());g.gain.value=v;return g};
-  const noise=k=>{const s=add(ac.createBufferSource());s.buffer=bAmb.buf(k);s.loop=true;s.start(0,Math.random()*7);return s};
-  const lfo=(hz,depth,param)=>{const o=add(ac.createOscillator());o.frequency.value=hz;o.connect(gain(depth)).connect(param);o.start()};
-  if(kind==='rain'){
-   noise('pink').connect(filt('highpass',500)).connect(filt('lowpass',7000)).connect(gain(.5)).connect(out);
-   noise('brown').connect(filt('lowpass',400)).connect(gain(.35)).connect(out);
-   const drop=()=>{const t=ac.currentTime,s=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain();s.buffer=bAmb.buf('pink');
-    f.type='bandpass';f.frequency.value=1500+Math.random()*3500;f.Q.value=4;g.gain.setValueAtTime(.05+Math.random()*.12,t);g.gain.exponentialRampToValueAtTime(.0001,t+.04+Math.random()*.05);
-    s.connect(f).connect(g).connect(out);s.start(t,Math.random()*7,.12)};
-   T.push(setInterval(()=>{for(let i=0;i<3;i++)if(Math.random()<.6)drop()},60))}
-  else if(kind==='ocean'){
-   const f=filt('lowpass',500),g=gain(.35);noise('brown').connect(f);noise('pink').connect(gain(.25)).connect(f);f.connect(g).connect(out);
-   lfo(.09,.28,g.gain);lfo(.09,350,f.frequency);lfo(.037,.1,g.gain)}
-  else if(kind==='stream'){
-   const src=noise('pink');[[700,.31],[1400,.53],[2600,.83],[4200,1.3]].forEach(([fr,hz])=>{const f=filt('bandpass',fr,1.2),g=gain(.35);src.connect(f).connect(g).connect(out);lfo(hz,.25,g.gain);lfo(hz*.7,fr*.25,f.frequency)})}
-  else if(kind==='noise'){noise('brown').connect(filt('lowpass',900)).connect(gain(.6)).connect(out)}
-  return{N,T}},
- start(kind,fade=3){bAmb.stop(.3);if(kind==='none'||!S.sound)return;try{const ac=P.ctx(),m=ac.createGain();m.gain.setValueAtTime(.0001,ac.currentTime);m.connect(ac.destination);
-  bAmb.master=m;bAmb.cur=bAmb.build(kind,m);bAmb.to(bAmb.level,fade)}catch(e){}},
+// ---------- 背景聲音（真實錄音，CC0 授權，來源見 docs/breathing.md 5.4）----------
+// 每個檔案都是頭尾已交叉淡化（4 秒）接好的循環片段，用 Web Audio 無縫循環播放；B_AMB_LEN 為各檔精確長度（秒）
+const B_AMB_LEN={stream:75,rain:55,ocean:75,fire:75};
+const bAmb={files:{},cur:null,master:null,level:1,
+ load(kind){if(bAmb.files[kind])return bAmb.files[kind];
+  return bAmb.files[kind]=fetch(`audio/b/amb/${kind}.mp3`).then(r=>r.arrayBuffer()).then(a=>P.ctx().decodeAudioData(a)).catch(e=>{delete bAmb.files[kind];throw e})},
+ start(kind,fade=3){bAmb.stop(.3);if(kind==='none'||!S.sound)return;const tok=bAmb.tok=Symbol();
+  bAmb.load(kind).then(buf=>{if(bAmb.tok!==tok)return;const ac=P.ctx(),m=ac.createGain(),s=ac.createBufferSource();
+   m.gain.setValueAtTime(.0001,ac.currentTime);m.connect(ac.destination);
+   s.buffer=buf;s.loop=true;s.loopStart=0;s.loopEnd=Math.min(buf.duration,B_AMB_LEN[kind]||buf.duration);s.connect(m);s.start(0,Math.random()*s.loopEnd*.8);
+   bAmb.master=m;bAmb.cur={N:[s],T:[]};bAmb.to(bAmb.level,fade)}).catch(()=>{})},
  // x = 淡出倍率（睡前模式用），實際音量 = x × 使用者音量
  to(x,sec){const m=bAmb.master;if(!m)return;try{const ac=P.ctx(),t=ac.currentTime,v=Math.max(.0001,x*B.ambVol()/100*.6);
   m.gain.cancelScheduledValues(t);m.gain.setValueAtTime(Math.max(.0001,m.gain.value),t);m.gain.linearRampToValueAtTime(v,t+sec)}catch(e){}},
- stop(sec=3){const c=bAmb.cur,m=bAmb.master;bAmb.cur=bAmb.master=null;if(!c)return;c.T.forEach(clearInterval);
+ stop(sec=3){bAmb.tok=null;const c=bAmb.cur,m=bAmb.master;bAmb.cur=bAmb.master=null;if(!c)return;c.T.forEach(clearInterval);
   try{const t=P.ctx().currentTime;m.gain.cancelScheduledValues(t);m.gain.setValueAtTime(Math.max(.0001,m.gain.value),t);m.gain.linearRampToValueAtTime(.0001,t+sec)}catch(e){}
   setTimeout(()=>{c.N.forEach(n=>{try{n.stop&&n.stop()}catch(e){}try{n.disconnect()}catch(e){}});try{m.disconnect()}catch(e){}},sec*1000+150)},
  preview(kind){clearTimeout(bAmb.pt);try{P.ctx().resume()}catch(e){}bAmb.level=1;bAmb.start(kind,.8);if(kind!=='none')bAmb.pt=setTimeout(()=>bAmb.stop(1.5),4000)}

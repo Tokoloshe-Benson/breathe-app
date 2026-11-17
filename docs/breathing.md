@@ -113,8 +113,18 @@
 
 ### 5.4 背景聲音（第二版，2026-11-16）
 
-- 在準備畫面選擇：**無／雨聲／海浪／溪流／柔和白噪音**，點一下可試聽 4 秒；選了之後可以調音量。
-- 聲音是程式**即時合成**的，不需要音檔，可以離線使用。
+- 在準備畫面選擇：**無／雨聲／海浪／溪流／營火**，點一下可試聽 4 秒；選了之後可以調音量。
+- 全部使用**真實的自然錄音**（使用者要求不要合成，2026-11-17 改版），皆為 Freesound 上的 CC0 授權（免費、可商用、不用標註作者）：
+
+  | 聲音 | 檔案 | 來源 | 循環長度 |
+  |---|---|---|---|
+  | 溪流 | `app/audio/b/amb/stream.mp3` | alenym7〈stream〉美國佛蒙特州山頂小溪 https://freesound.org/people/alenym7/sounds/730828/ | 75 秒 |
+  | 雨聲 | `app/audio/b/amb/rain.mp3` | SignatureSoundsOrg〈Rain_Hitting_Window_9〉 https://freesound.org/people/SignatureSoundsOrg/sounds/869851/ | 55 秒 |
+  | 海浪 | `app/audio/b/amb/ocean.mp3` | helenicglauc〈Onades, waves, Mediterranian sea〉 https://freesound.org/people/helenicglauc/sounds/727834/ | 75 秒 |
+  | 營火 | `app/audio/b/amb/fire.mp3` | CaptainYulef〈Crackling.wav〉 https://freesound.org/people/CaptainYulef/sounds/638299/ | 75 秒 |
+
+- **無縫循環做法**：從原始錄音挑出音量最平穩的一段，把結尾 4 秒與開頭 4 秒做等功率交叉淡化，使檔案結尾直接接回開頭；播放時用 Web Audio 的 `loop`，`loopEnd` 設為精確長度，不會有停頓或切換感。各檔約 0.66–0.9 MB（96kbps 立體聲），平均音量統一到約 -26 dB。
+- 舊設定的「柔和白噪音」（`noise`）自動視為「營火」。
 - 練習開始時花 4 秒淡入，暫停時淡出、繼續時淡入，結束時花 3 秒淡出。
 - 受全 App「音效」總開關控制；跟「只開語音／只開音效」無關。
 - 設定是整個呼吸分頁共用的（`breath.amb`、`breath.ambVol`）。
